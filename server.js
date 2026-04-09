@@ -30,10 +30,11 @@ db.serialize(() => {
         password TEXT,
         avatar TEXT DEFAULT '/avatars/default.png',
         role TEXT DEFAULT 'user',
+        theme TEXT DEFAULT 'dark',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Код дружбы (для регистрации)
+    // Код дружбы
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         created_by TEXT,
@@ -92,41 +93,65 @@ db.serialize(() => {
         PRIMARY KEY(user_id, friend_id)
     )`);
     
-    // Создаём владельца (Artemka1488)
+    // Заявки в друзья
+    db.run(`CREATE TABLE IF NOT EXISTS friend_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user_id TEXT,
+        to_user_id TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // Создаём владельца Artemka1488
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hashedPassword = await bcrypt.hash('admin123', 10);
             db.run("INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, 'owner')", 
                 ['owner_artemka', 'Artemka1488', hashedPassword]);
+            console.log('✅ Создан владелец Artemka1488 с паролем admin123');
         }
     });
     
-    // Создаём код дружбы по умолчанию
+    // Создаём тестового пользователя
+    db.get("SELECT * FROM users WHERE username = 'TestUser'", async (err, user) => {
+        if (!user) {
+            const hashedPassword = await bcrypt.hash('test123', 10);
+            db.run("INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, 'user')", 
+                ['test_user', 'TestUser', hashedPassword]);
+        }
+    });
+    
+    // Создаём код дружбы
     db.get("SELECT * FROM invite_codes WHERE code = 'FRIEND2024'", (err, code) => {
         if (!code) {
             db.run("INSERT INTO invite_codes (code, created_by, uses_left) VALUES ('FRIEND2024', 'owner_artemka', 100)");
         }
     });
+    
+    // Создаём канал владельца с галочкой
+    db.get("SELECT * FROM channels WHERE name = 'Artemka1488 Official'", (err, channel) => {
+        if (!channel) {
+            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, 1)", 
+                ['channel_artemka', 'Artemka1488 Official', 'Официальный канал владельца', 'owner_artemka']);
+            console.log('✅ Создан канал Artemka1488 Official');
+        }
+    });
 });
 
-// ========== ФУНКЦИИ ==========
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
 // ========== API ==========
 
-// Регистрация с кодом дружбы
+// Регистрация
 app.post('/api/register', async (req, res) => {
     const { username, password, inviteCode } = req.body;
-    
     if (!username || username.length < 3) return res.json({ error: 'Ник от 3 символов' });
     if (!password || password.length < 4) return res.json({ error: 'Пароль от 4 символов' });
     if (!inviteCode) return res.json({ error: 'Введите код дружбы' });
     
-    // Проверяем код
     db.get("SELECT * FROM invite_codes WHERE code = ? AND uses_left > 0", [inviteCode], async (err, code) => {
-        if (!code) return res.json({ error: 'Неверный или использованный код дружбы' });
+        if (err || !code) return res.json({ error: 'Неверный код дружбы' });
         
-        // Проверяем существует ли пользователь
         db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
             if (user) return res.json({ error: 'Ник уже занят' });
             
@@ -146,13 +171,20 @@ app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
-        if (!user) return res.json({ error: 'Пользователь не найден' });
+        if (err || !user) return res.json({ error: 'Пользователь не найден' });
         
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.json({ error: 'Неверный пароль' });
         
-        res.json({ success: true, userId: user.id, username: user.username, role: user.role, avatar: user.avatar });
+        res.json({ success: true, userId: user.id, username: user.username, role: user.role, theme: user.theme || 'dark' });
     });
+});
+
+// Обновление темы
+app.post('/api/update-theme', (req, res) => {
+    const { userId, theme } = req.body;
+    db.run("UPDATE users SET theme = ? WHERE id = ?", [theme, userId]);
+    res.json({ success: true });
 });
 
 // Получить каналы
@@ -164,27 +196,20 @@ app.get('/api/channels', (req, res) => {
     });
 });
 
-// Создать канал (только для владельца)
+// Создать канал (только владелец)
 app.post('/api/create-channel', (req, res) => {
     const { name, description, userId } = req.body;
     
     db.get("SELECT role FROM users WHERE id = ?", [userId], (err, user) => {
-        if (user && (user.role === 'owner' || user.role === 'admin')) {
+        if (user && user.role === 'owner') {
             const channelId = generateId();
-            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, ?)", 
-                [channelId, name, description, userId, user.role === 'owner' ? 1 : 0]);
+            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, 1)", 
+                [channelId, name, description, userId]);
             res.json({ success: true, channelId });
         } else {
-            res.json({ error: 'Нет прав для создания канала' });
+            res.json({ error: 'Только владелец может создавать каналы' });
         }
     });
-});
-
-// Подписаться на канал
-app.post('/api/subscribe-channel', (req, res) => {
-    const { channelId, userId } = req.body;
-    db.run("INSERT OR IGNORE INTO channel_subscribers (channel_id, user_id) VALUES (?, ?)", [channelId, userId]);
-    res.json({ success: true });
 });
 
 // Получить заметки
@@ -199,7 +224,7 @@ app.post('/api/create-note', (req, res) => {
     const { userId, title, content } = req.body;
     const noteId = generateId();
     db.run("INSERT INTO notes (id, user_id, title, content) VALUES (?, ?, ?, ?)", [noteId, userId, title, content]);
-    res.json({ success: true, noteId });
+    res.json({ success: true });
 });
 
 // Закрепить заметку
@@ -219,26 +244,46 @@ app.post('/api/delete-note', (req, res) => {
 // Отправить заявку в друзья
 app.post('/api/add-friend', (req, res) => {
     const { userId, friendUsername } = req.body;
-    db.get("SELECT id FROM users WHERE username = ?", [friendUsername], (err, friend) => {
+    db.get("SELECT id, username FROM users WHERE username = ?", [friendUsername], (err, friend) => {
         if (!friend) return res.json({ error: 'Пользователь не найден' });
         if (userId === friend.id) return res.json({ error: 'Нельзя добавить себя' });
-        db.run("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?)", [userId, friend.id]);
-        res.json({ success: true });
+        
+        db.get("SELECT * FROM friend_requests WHERE from_user_id = ? AND to_user_id = ?", [userId, friend.id], (err, existing) => {
+            if (existing) return res.json({ error: 'Заявка уже отправлена' });
+            
+            db.run("INSERT INTO friend_requests (from_user_id, to_user_id, status) VALUES (?, ?, 'pending')", [userId, friend.id]);
+            res.json({ success: true, message: 'Заявка отправлена' });
+        });
+    });
+});
+
+// Получить заявки в друзья
+app.get('/api/friend-requests/:userId', (req, res) => {
+    db.all(`SELECT fr.*, u.username as from_name 
+            FROM friend_requests fr 
+            JOIN users u ON u.id = fr.from_user_id 
+            WHERE fr.to_user_id = ? AND fr.status = 'pending'`, 
+        [req.params.userId], (err, requests) => {
+        res.json({ requests: requests || [] });
     });
 });
 
 // Принять заявку
 app.post('/api/accept-friend', (req, res) => {
-    const { userId, friendId } = req.body;
-    db.run("UPDATE friends SET status = 'accepted' WHERE user_id = ? AND friend_id = ?", [friendId, userId]);
+    const { userId, fromUserId } = req.body;
+    db.run("UPDATE friend_requests SET status = 'accepted' WHERE from_user_id = ? AND to_user_id = ?", [fromUserId, userId]);
+    db.run("INSERT OR IGNORE INTO friends (user_id, friend_id, status) VALUES (?, ?, 'accepted')", [userId, fromUserId]);
+    db.run("INSERT OR IGNORE INTO friends (user_id, friend_id, status) VALUES (?, ?, 'accepted')", [fromUserId, userId]);
     res.json({ success: true });
 });
 
 // Получить друзей
 app.get('/api/friends/:userId', (req, res) => {
-    db.all(`SELECT u.id, u.username, u.avatar, f.status 
-            FROM friends f JOIN users u ON u.id = f.friend_id 
-            WHERE f.user_id = ? AND f.status = 'accepted'`, [req.params.userId], (err, friends) => {
+    db.all(`SELECT u.id, u.username, u.avatar 
+            FROM friends f 
+            JOIN users u ON u.id = f.friend_id 
+            WHERE f.user_id = ? AND f.status = 'accepted'`, 
+        [req.params.userId], (err, friends) => {
         res.json({ friends: friends || [] });
     });
 });
@@ -263,31 +308,27 @@ app.post('/api/voice-message', (req, res) => {
     res.json({ success: true, url: filepath });
 });
 
-// ========== WEBSOCKET (ЗВОНКИ) ==========
+// ========== WEBSOCKET ==========
 const onlineUsers = new Map();
-const usersData = new Map();
 
 io.on('connection', (socket) => {
-    console.log('Подключился:', socket.id);
     let currentUserId = null;
     
     socket.on('user-online', (data) => {
         currentUserId = data.userId;
-        onlineUsers.set(data.userId, socket.id);
-        usersData.set(data.userId, data);
+        onlineUsers.set(data.userId, { socketId: socket.id, username: data.username });
         broadcastUsers();
     });
     
-    // Личное сообщение
     socket.on('private-message', (data) => {
         const messageId = generateId();
-        db.run(`INSERT INTO messages (id, from_id, to_id, text, voice, reply_to, reactions) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-            [messageId, currentUserId, data.toUserId, data.text, data.voice, JSON.stringify(data.replyTo), '{}']);
+        db.run(`INSERT INTO messages (id, from_id, to_id, text, voice, reply_to) 
+                VALUES (?, ?, ?, ?, ?, ?)`, 
+            [messageId, currentUserId, data.toUserId, data.text, data.voice, data.replyTo ? JSON.stringify(data.replyTo) : null]);
         
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('new-message', {
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('new-message', {
                 id: messageId,
                 fromId: currentUserId,
                 text: data.text,
@@ -299,11 +340,11 @@ io.on('connection', (socket) => {
         socket.emit('message-sent', { id: messageId });
     });
     
-    // ========== ЗВОНКИ (WebRTC) ==========
+    // Звонки
     socket.on('call-user', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('incoming-call', {
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('incoming-call', {
                 fromId: currentUserId,
                 fromName: data.fromName,
                 offer: data.offer,
@@ -313,43 +354,30 @@ io.on('connection', (socket) => {
     });
     
     socket.on('answer-call', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('call-answered', { answer: data.answer });
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('call-answered', { answer: data.answer });
         }
     });
     
     socket.on('ice-candidate', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('ice-candidate', { candidate: data.candidate });
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('ice-candidate', { candidate: data.candidate });
         }
     });
     
     socket.on('end-call', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('call-ended');
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('call-ended');
         }
     });
     
-    // Реакция
-    socket.on('add-reaction', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('reaction-added', {
-                messageId: data.messageId,
-                reaction: data.reaction,
-                fromId: currentUserId
-            });
-        }
-    });
-    
-    // Печатает
     socket.on('typing', (data) => {
-        const toSocket = onlineUsers.get(data.toUserId);
-        if (toSocket) {
-            io.to(toSocket).emit('user-typing', { fromId: currentUserId, name: data.name });
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('user-typing', { fromId: currentUserId, name: data.name });
         }
     });
     
@@ -362,11 +390,8 @@ io.on('connection', (socket) => {
     
     function broadcastUsers() {
         const list = [];
-        for (let [id, socketId] of onlineUsers) {
-            const userData = usersData.get(id);
-            if (userData) {
-                list.push({ id: userData.userId, username: userData.username, online: true });
-            }
+        for (let [id, data] of onlineUsers) {
+            list.push({ id: id, username: data.username, online: true });
         }
         io.emit('users-list', list);
     }
