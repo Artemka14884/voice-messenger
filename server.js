@@ -15,15 +15,13 @@ const io = socketIo(server, {
 app.use(express.static('public'));
 app.use(express.json({ limit: '10mb' }));
 
-// Папки
 if (!fs.existsSync('./public/voice')) fs.mkdirSync('./public/voice', { recursive: true });
 if (!fs.existsSync('./public/avatars')) fs.mkdirSync('./public/avatars', { recursive: true });
 
-// ========== БАЗА ДАННЫХ ==========
 const db = new sqlite3.Database('messenger.db');
 
 db.serialize(() => {
-    // Пользователи (без почты)
+    // Пользователи
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE,
@@ -31,7 +29,18 @@ db.serialize(() => {
         avatar TEXT DEFAULT '/avatars/default.png',
         role TEXT DEFAULT 'user',
         theme TEXT DEFAULT 'dark',
+        banned INTEGER DEFAULT 0,
+        banned_until INTEGER DEFAULT NULL,
+        banned_ip TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // IP пользователей
+    db.run(`CREATE TABLE IF NOT EXISTS user_ips (
+        user_id TEXT,
+        ip TEXT,
+        last_seen INTEGER,
+        PRIMARY KEY(user_id, ip)
     )`);
     
     // Коды приглашения
@@ -52,6 +61,14 @@ db.serialize(() => {
         reply_to TEXT,
         read INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // Непрочитанные сообщения (счётчик)
+    db.run(`CREATE TABLE IF NOT EXISTS unread_counts (
+        user_id TEXT,
+        from_user_id TEXT,
+        count INTEGER DEFAULT 0,
+        PRIMARY KEY(user_id, from_user_id)
     )`);
     
     // Каналы
@@ -98,13 +115,20 @@ db.serialize(() => {
         PRIMARY KEY(user_id)
     )`);
     
-    // Создаём владельца Artemka1488
+    // Баны по IP
+    db.run(`CREATE TABLE IF NOT EXISTS banned_ips (
+        ip TEXT PRIMARY KEY,
+        banned_at INTEGER,
+        reason TEXT
+    )`);
+    
+    // Создаём владельца
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hashedPassword = await bcrypt.hash('admin123', 10);
             db.run("INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, 'owner')", 
                 ['owner_artemka', 'Artemka1488', hashedPassword]);
-            console.log('✅ Создан владелец Artemka1488 (пароль: admin123)');
+            console.log('✅ Владелец Artemka1488 (пароль: admin123)');
         }
     });
     
@@ -125,6 +149,30 @@ db.serialize(() => {
 });
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+// Получить IP
+function getClientIp(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+}
+
+// Проверка бана
+function isUserBanned(user, ip, callback) {
+    const now = Date.now();
+    if (user && user.banned === 1) {
+        if (user.banned_until && user.banned_until > now) {
+            callback(true, `Аккаунт заморожен до ${new Date(user.banned_until).toLocaleString()}`);
+        } else if (user.banned_until === null || user.banned_until <= now) {
+            callback(true, 'Аккаунт заблокирован навсегда');
+        } else {
+            callback(false, null);
+        }
+    } else {
+        db.get("SELECT * FROM banned_ips WHERE ip = ?", [ip], (err, bannedIp) => {
+            if (bannedIp) callback(true, 'Ваш IP заблокирован');
+            else callback(false, null);
+        });
+    }
+}
 
 // ========== АНТИСПАМ ==========
 function checkSpam(userId, callback) {
@@ -149,28 +197,41 @@ function checkSpam(userId, callback) {
     });
 }
 
+// Обновить счётчик непрочитанных
+function updateUnreadCount(toUserId, fromUserId) {
+    db.run(`INSERT INTO unread_counts (user_id, from_user_id, count) 
+            VALUES (?, ?, 1) 
+            ON CONFLICT(user_id, from_user_id) DO UPDATE SET count = count + 1`, 
+            [toUserId, fromUserId]);
+}
+
+// Сбросить счётчик
+function resetUnreadCount(userId, fromUserId) {
+    db.run("DELETE FROM unread_counts WHERE user_id = ? AND from_user_id = ?", [userId, fromUserId]);
+}
+
 // ========== API ==========
 
-// Регистрация (только ник и пароль + код)
+// Регистрация
 app.post('/api/register', async (req, res) => {
     const { username, password, inviteCode } = req.body;
+    const ip = getClientIp(req);
     
-    if (!username || username.length < 3) return res.json({ error: 'Ник должен быть от 3 символов' });
-    if (!password || password.length < 4) return res.json({ error: 'Пароль должен быть от 4 символов' });
+    if (!username || username.length < 3) return res.json({ error: 'Ник от 3 символов' });
+    if (!password || password.length < 4) return res.json({ error: 'Пароль от 4 символов' });
     if (!inviteCode) return res.json({ error: 'Введите код дружбы' });
     
-    // Проверяем код
     db.get("SELECT * FROM invite_codes WHERE code = ? AND uses_left > 0", [inviteCode], async (err, code) => {
-        if (!code) return res.json({ error: 'Неверный код дружбы' });
+        if (!code) return res.json({ error: 'Неверный код' });
         
-        // Проверяем ник
         db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
-            if (user) return res.json({ error: 'Ник уже занят' });
+            if (user) return res.json({ error: 'Ник занят' });
             
             const userId = generateId();
             const hashedPassword = await bcrypt.hash(password, 10);
             
             db.run("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", [userId, username, hashedPassword]);
+            db.run("INSERT INTO user_ips (user_id, ip, last_seen) VALUES (?, ?, ?)", [userId, ip, Date.now()]);
             db.run("UPDATE invite_codes SET uses_left = uses_left - 1 WHERE code = ?", [inviteCode]);
             
             res.json({ success: true, userId, username });
@@ -181,16 +242,117 @@ app.post('/api/register', async (req, res) => {
 // Вход
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
+    const ip = getClientIp(req);
     
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
         if (!user) return res.json({ error: 'Пользователь не найден' });
         
-        const valid = await bcrypt.compare(password, user.password);
-        if (!valid) return res.json({ error: 'Неверный пароль' });
-        
-        res.json({ success: true, userId: user.id, username: user.username, role: user.role, theme: user.theme || 'dark' });
+        isUserBanned(user, ip, async (banned, reason) => {
+            if (banned) return res.json({ error: reason });
+            
+            const valid = await bcrypt.compare(password, user.password);
+            if (!valid) return res.json({ error: 'Неверный пароль' });
+            
+            db.run("INSERT OR REPLACE INTO user_ips (user_id, ip, last_seen) VALUES (?, ?, ?)", [user.id, ip, Date.now()]);
+            res.json({ success: true, userId: user.id, username: user.username, role: user.role, theme: user.theme || 'dark' });
+        });
     });
 });
+
+// ========== АДМИН-ФУНКЦИИ (только владелец) ==========
+
+// Бан пользователя
+app.post('/api/admin/ban-user', (req, res) => {
+    const { adminId, userId, reason, duration } = req.body; // duration: null=навсегда, число=минут
+    
+    db.get("SELECT role FROM users WHERE id = ?", [adminId], (err, admin) => {
+        if (!admin || admin.role !== 'owner') return res.json({ error: 'Нет прав' });
+        
+        const bannedUntil = duration ? Date.now() + (duration * 60000) : null;
+        db.run("UPDATE users SET banned = 1, banned_until = ? WHERE id = ?", [bannedUntil, userId]);
+        
+        // Кикаем пользователя
+        const userSocket = onlineUsers.get(userId);
+        if (userSocket) {
+            io.to(userSocket.socketId).emit('force-logout', { reason: `Вы забанены: ${reason}` });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// Разбан
+app.post('/api/admin/unban-user', (req, res) => {
+    const { adminId, userId } = req.body;
+    
+    db.get("SELECT role FROM users WHERE id = ?", [adminId], (err, admin) => {
+        if (!admin || admin.role !== 'owner') return res.json({ error: 'Нет прав' });
+        
+        db.run("UPDATE users SET banned = 0, banned_until = NULL WHERE id = ?", [userId]);
+        res.json({ success: true });
+    });
+});
+
+// Бан по IP
+app.post('/api/admin/ban-ip', (req, res) => {
+    const { adminId, ip, reason } = req.body;
+    
+    db.get("SELECT role FROM users WHERE id = ?", [adminId], (err, admin) => {
+        if (!admin || admin.role !== 'owner') return res.json({ error: 'Нет прав' });
+        
+        db.run("INSERT OR REPLACE INTO banned_ips (ip, banned_at, reason) VALUES (?, ?, ?)", [ip, Date.now(), reason]);
+        
+        // Кикаем всех с этим IP
+        for (let [userId, data] of onlineUsers) {
+            db.get("SELECT ip FROM user_ips WHERE user_id = ?", [userId], (err, ipData) => {
+                if (ipData && ipData.ip === ip) {
+                    io.to(data.socketId).emit('force-logout', { reason: `Ваш IP заблокирован: ${reason}` });
+                }
+            });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// Удалить аккаунт
+app.post('/api/admin/delete-user', (req, res) => {
+    const { adminId, userId } = req.body;
+    
+    db.get("SELECT role FROM users WHERE id = ?", [adminId], (err, admin) => {
+        if (!admin || admin.role !== 'owner') return res.json({ error: 'Нет прав' });
+        
+        db.run("DELETE FROM users WHERE id = ?", [userId]);
+        db.run("DELETE FROM messages WHERE from_id = ? OR to_id = ?", [userId, userId]);
+        db.run("DELETE FROM friends WHERE user_id = ? OR friend_id = ?", [userId, userId]);
+        db.run("DELETE FROM notes WHERE user_id = ?", [userId]);
+        
+        const userSocket = onlineUsers.get(userId);
+        if (userSocket) {
+            io.to(userSocket.socketId).emit('force-logout', { reason: 'Ваш аккаунт удалён' });
+        }
+        
+        res.json({ success: true });
+    });
+});
+
+// Получить всех пользователей (для админа)
+app.get('/api/admin/users', (req, res) => {
+    const { adminId } = req.query;
+    
+    db.get("SELECT role FROM users WHERE id = ?", [adminId], (err, admin) => {
+        if (!admin || admin.role !== 'owner') return res.json({ error: 'Нет прав' });
+        
+        db.all(`SELECT u.*, 
+                (SELECT COUNT(*) FROM messages WHERE to_id = u.id AND read = 0) as unread,
+                (SELECT ip FROM user_ips WHERE user_id = u.id ORDER BY last_seen DESC LIMIT 1) as last_ip
+                FROM users u`, [], (err, users) => {
+            res.json({ users: users || [] });
+        });
+    });
+});
+
+// ========== ОСТАЛЬНЫЕ API ==========
 
 // Обновление темы
 app.post('/api/update-theme', (req, res) => {
@@ -208,7 +370,7 @@ app.get('/api/channels', (req, res) => {
     });
 });
 
-// Создать канал (только владелец)
+// Создать канал
 app.post('/api/create-channel', (req, res) => {
     const { name, description, userId } = req.body;
     
@@ -217,14 +379,14 @@ app.post('/api/create-channel', (req, res) => {
             const channelId = generateId();
             db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, 1)", 
                 [channelId, name, description, userId]);
-            res.json({ success: true, channelId });
+            res.json({ success: true });
         } else {
-            res.json({ error: 'Только владелец может создавать каналы' });
+            res.json({ error: 'Только владелец' });
         }
     });
 });
 
-// Подписаться на канал
+// Подписаться
 app.post('/api/subscribe-channel', (req, res) => {
     const { channelId, userId } = req.body;
     db.run("INSERT OR IGNORE INTO channel_subscribers (channel_id, user_id) VALUES (?, ?)", [channelId, userId]);
@@ -271,23 +433,32 @@ app.post('/api/add-friend', (req, res) => {
             db.run("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", [userId, friend.id]);
             db.run("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", [friend.id, userId]);
             
-            res.json({ success: true, message: `${friend.username} добавлен в друзья!` });
+            res.json({ success: true, message: `${friend.username} добавлен!` });
         });
     });
 });
 
-// Получить друзей
 app.get('/api/friends/:userId', (req, res) => {
-    db.all(`SELECT u.id, u.username, u.avatar 
+    db.all(`SELECT u.id, u.username, u.avatar,
+            (SELECT COUNT(*) FROM unread_counts WHERE user_id = ? AND from_user_id = u.id) as unread_count
             FROM friends f 
             JOIN users u ON u.id = f.friend_id 
-            WHERE f.user_id = ?`, [req.params.userId], (err, friends) => {
+            WHERE f.user_id = ?`, [req.params.userId, req.params.userId], (err, friends) => {
         res.json({ friends: friends || [] });
+    });
+});
+
+app.get('/api/unread-count/:userId/:fromUserId', (req, res) => {
+    db.get("SELECT count FROM unread_counts WHERE user_id = ? AND from_user_id = ?", 
+        [req.params.userId, req.params.fromUserId], (err, data) => {
+        res.json({ count: data?.count || 0 });
     });
 });
 
 // Получить сообщения
 app.get('/api/messages/:userId/:otherId', (req, res) => {
+    resetUnreadCount(req.params.userId, req.params.otherId);
+    
     db.all(`SELECT * FROM messages 
             WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
             ORDER BY created_at ASC LIMIT 100`, 
@@ -296,7 +467,7 @@ app.get('/api/messages/:userId/:otherId', (req, res) => {
     });
 });
 
-// Голосовое сообщение
+// Голосовое
 app.post('/api/voice-message', (req, res) => {
     const { audioData } = req.body;
     const filename = `${Date.now()}.webm`;
@@ -321,7 +492,7 @@ io.on('connection', (socket) => {
     socket.on('private-message', (data) => {
         checkSpam(currentUserId, (isBlocked, secondsLeft) => {
             if (isBlocked) {
-                socket.emit('spam-warning', { message: `Вы заблокированы за спам на ${secondsLeft} сек` });
+                socket.emit('spam-warning', { message: `Блок спама: ${secondsLeft} сек` });
                 return;
             }
             
@@ -329,6 +500,9 @@ io.on('connection', (socket) => {
             db.run(`INSERT INTO messages (id, from_id, to_id, text, voice, reply_to) 
                     VALUES (?, ?, ?, ?, ?, ?)`, 
                 [messageId, currentUserId, data.toUserId, data.text, data.voice, data.replyTo ? JSON.stringify(data.replyTo) : null]);
+            
+            // Обновляем счётчик непрочитанных
+            updateUnreadCount(data.toUserId, currentUserId);
             
             const toUser = onlineUsers.get(data.toUserId);
             if (toUser) {
@@ -339,6 +513,11 @@ io.on('connection', (socket) => {
                     voice: data.voice,
                     replyTo: data.replyTo,
                     time: new Date().toLocaleTimeString()
+                });
+                // Отправляем обновление счётчика
+                db.get("SELECT count FROM unread_counts WHERE user_id = ? AND from_user_id = ?", 
+                    [data.toUserId, currentUserId], (err, countData) => {
+                    io.to(toUser.socketId).emit('unread-update', { fromUserId: currentUserId, count: countData?.count || 1 });
                 });
             }
             socket.emit('message-sent', { id: messageId });
@@ -395,4 +574,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`✅ Сервер запущен на порту ${PORT}`));
+server.listen(PORT, () => console.log(`✅ Сервер на порту ${PORT}`));
