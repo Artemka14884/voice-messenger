@@ -13,25 +13,21 @@ const io = socketIo(server, {
 app.use(express.static('public'));
 app.use(express.json());
 
-// Простая база данных в памяти (для Render)
 const users = new Map();
 const messages = [];
 const onlineUsers = new Map();
 
-// Генерация ID
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// API
 app.post('/api/login', (req, res) => {
     const { username } = req.body;
     
-    if (!username || username.length < 2 || username.length > 20) {
+    if (!username || username.length < 2 || username.length < 2) {
         return res.json({ error: 'Ник от 2 до 20 символов' });
     }
     
-    // Проверка на существующего
     for (let [_, user] of users) {
         if (user.username === username) {
             return res.json({ error: 'Ник уже занят' });
@@ -39,26 +35,35 @@ app.post('/api/login', (req, res) => {
     }
     
     const userId = generateId();
-    users.set(userId, { id: userId, username: username, avatar: '/default-avatar.png' });
+    users.set(userId, { id: userId, username: username, theme: 'dark' });
     
     res.json({ success: true, userId: userId, username: username });
 });
 
-// Получить пользователей
+app.post('/api/update-theme', (req, res) => {
+    const { userId, theme } = req.body;
+    const user = users.get(userId);
+    if (user) {
+        user.theme = theme;
+        res.json({ success: true });
+    } else {
+        res.json({ error: 'User not found' });
+    }
+});
+
 app.get('/api/users', (req, res) => {
     const userList = [];
     for (let [_, user] of users) {
         userList.push({
             id: user.id,
             username: user.username,
-            avatar: user.avatar,
-            online: onlineUsers.has(user.id)
+            online: onlineUsers.has(user.id),
+            theme: user.theme
         });
     }
     res.json({ users: userList });
 });
 
-// Получить сообщения
 app.get('/api/messages/:userId/:otherId', (req, res) => {
     const userMessages = messages.filter(m => 
         (m.fromId === req.params.userId && m.toId === req.params.otherId) ||
@@ -67,29 +72,26 @@ app.get('/api/messages/:userId/:otherId', (req, res) => {
     res.json({ messages: userMessages.slice(-50) });
 });
 
-// Socket.io
 io.on('connection', (socket) => {
-    console.log('✅ Подключился:', socket.id);
+    console.log('Подключился:', socket.id);
     let currentUserId = null;
     
     socket.on('user-online', (data) => {
         currentUserId = data.userId;
         onlineUsers.set(data.userId, socket.id);
         
-        // Отправляем список пользователей
         const userList = [];
         for (let [id, user] of users) {
             userList.push({
                 id: user.id,
                 username: user.username,
-                avatar: user.avatar,
-                online: onlineUsers.has(id)
+                online: onlineUsers.has(id),
+                theme: user.theme
             });
         }
         io.emit('users-list', userList);
     });
     
-    // Личное сообщение
     socket.on('private-message', (data) => {
         const message = {
             id: Date.now(),
@@ -107,13 +109,13 @@ io.on('connection', (socket) => {
         socket.emit('message-sent', message);
     });
     
-    // ========== ВИДЕО ЗВОНКИ (с TURN сервером) ==========
-    
+    // ЗВОНКИ
     socket.on('call-user', (data) => {
         const toSocket = onlineUsers.get(data.toUserId);
         if (toSocket) {
             io.to(toSocket).emit('incoming-call', {
                 fromId: currentUserId,
+                fromName: users.get(currentUserId)?.username,
                 offer: data.offer,
                 type: data.type
             });
@@ -144,7 +146,7 @@ io.on('connection', (socket) => {
     socket.on('typing', (data) => {
         const toSocket = onlineUsers.get(data.toUserId);
         if (toSocket) {
-            io.to(toSocket).emit('user-typing', { fromId: currentUserId });
+            io.to(toSocket).emit('user-typing', { fromId: currentUserId, fromName: users.get(currentUserId)?.username });
         }
     });
     
@@ -156,7 +158,8 @@ io.on('connection', (socket) => {
                 userList.push({
                     id: user.id,
                     username: user.username,
-                    online: onlineUsers.has(id)
+                    online: onlineUsers.has(id),
+                    theme: user.theme
                 });
             }
             io.emit('users-list', userList);
@@ -166,5 +169,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`✅ Сервер на Render запущен на порту ${PORT}`);
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
