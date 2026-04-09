@@ -1,304 +1,215 @@
+cat > public/index.html << 'EOF'
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер - Тёмная тема + Звонки</title>
+    <title>Мессенджер - Реакции и ответы на сообщения</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        /* ТЕМЫ */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            height: 100vh;
-            transition: all 0.3s ease;
-        }
-
-        /* Тёмная тема (по умолчанию) */
-        body.dark {
-            background: #1a1a2e;
-            color: #fff;
-        }
-        body.dark .sidebar { background: #16213e; }
-        body.dark .user-info { background: #0f3460; }
-        body.dark .user-item { background: #0f3460; }
-        body.dark .chat-area { background: #1a1a2e; }
-        body.dark .chat-header { background: #16213e; color: #fff; border-bottom-color: #0f3460; }
-        body.dark .message.other { background: #0f3460; color: #fff; }
-        body.dark .input-area { background: #16213e; border-top-color: #0f3460; }
-        body.dark .input-area input { background: #0f3460; color: #fff; border-color: #1a1a2e; }
-
-        /* Светлая тема */
-        body.light {
-            background: #f0f2f5;
-            color: #1a1a2e;
-        }
-        body.light .sidebar { background: #fff; }
-        body.light .user-info { background: #667eea; color: #fff; }
-        body.light .user-item { background: #f0f2f5; color: #1a1a2e; }
-        body.light .chat-area { background: #fff; }
-        body.light .chat-header { background: #fff; color: #1a1a2e; border-bottom-color: #e0e0e0; }
-        body.light .message.other { background: #f0f2f5; color: #1a1a2e; }
-        body.light .input-area { background: #fff; border-top-color: #e0e0e0; }
-        body.light .input-area input { background: #f0f2f5; color: #1a1a2e; border-color: #e0e0e0; }
-
-        /* Синяя тема */
-        body.blue {
-            background: #0d47a1;
-            color: #fff;
-        }
-        body.blue .sidebar { background: #1565c0; }
-        body.blue .user-info { background: #0d47a1; }
-        body.blue .user-item { background: #1565c0; }
-        body.blue .chat-area { background: #0d47a1; }
-        body.blue .chat-header { background: #1565c0; color: #fff; }
-        body.blue .message.other { background: #1565c0; color: #fff; }
-        body.blue .input-area { background: #1565c0; }
-        body.blue .input-area input { background: #0d47a1; color: #fff; border-color: #1565c0; }
-
-        /* Логин */
-        .login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .login-box h1 { margin-bottom: 10px; color: #333; }
-        .login-box input {
-            width: 100%;
-            padding: 15px;
-            margin: 15px 0;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-        .login-box button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .error { color: red; margin-top: 10px; }
-
-        /* Основной интерфейс */
-        .app { display: flex; height: 100vh; }
-        .sidebar { width: 320px; display: flex; flex-direction: column; }
-        .user-info { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .theme-selector { display: flex; gap: 8px; }
-        .theme-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.3);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .theme-btn:hover { transform: scale(1.1); }
-        .theme-dark { background: #1a1a2e; }
-        .theme-light { background: #f0f2f5; }
-        .theme-blue { background: #0d47a1; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; }
         
+        .login-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 350px; text-align: center; }
+        .login-box input { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; }
+        .login-box button { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; cursor: pointer; }
+        .error { color: red; margin-top: 10px; }
+        
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; }
+        .user-info { padding: 20px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
+        .invite-link { background: #0f3460; padding: 12px; margin: 15px; border-radius: 10px; text-align: center; }
+        .invite-link button { margin-top: 8px; padding: 5px 10px; background: #4CAF50; border: none; border-radius: 5px; color: white; cursor: pointer; }
         .online-users { flex: 1; overflow-y: auto; padding: 15px; }
-        .user-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            margin: 5px 0;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .user-item:hover { opacity: 0.8; }
-        .call-buttons { display: flex; gap: 5px; }
-        .call-btn {
-            background: #2196F3;
-            border: none;
-            color: white;
-            padding: 5px 8px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .chat-area { flex: 1; display: flex; flex-direction: column; }
-        .chat-header { padding: 15px 20px; border-bottom: 1px solid; }
+        .user-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:hover { background: #1a1a4e; }
+        .user-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-online { background: #4CAF50; }
+        
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
+        .chat-header { background: white; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
+        .typing-indicator { padding: 10px 20px; font-size: 12px; color: #666; font-style: italic; min-height: 40px; background: #fff; }
         .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; }
-        .message.own { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); align-self: flex-end; }
-        .message.other { align-self: flex-start; }
-        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 5px; }
-        .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        .typing-indicator { padding: 10px 20px; font-size: 12px; opacity: 0.7; font-style: italic; min-height: 40px; }
-        .input-area { display: flex; padding: 20px; gap: 10px; }
-        .input-area input { flex: 1; padding: 12px; border: none; border-radius: 25px; font-size: 14px; }
-        .input-area button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-        }
-        .hidden { display: none !important; }
-
-        /* Видео модалка */
-        .video-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.95);
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-        }
-        .video-modal.active { display: flex; }
-        .video-container { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px; }
-        .video-box { width: 45%; min-width: 300px; background: #000; border-radius: 10px; overflow: hidden; position: relative; }
-        .video-box video { width: 100%; height: auto; }
-        .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 5px 10px; border-radius: 5px; font-size: 12px; }
-        .call-controls { display: flex; justify-content: center; gap: 20px; padding: 20px; }
-        .call-controls button { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 24px; }
-        .call-controls .end-call { background: #f44336; color: white; }
+        
+        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; position: relative; }
+        .message.own { background: linear-gradient(135deg, #667eea, #764ba2); color: white; align-self: flex-end; }
+        .message.other { background: white; color: #333; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .reply-preview { font-size: 11px; opacity: 0.7; margin-bottom: 5px; padding-left: 10px; border-left: 2px solid; margin-top: 5px; }
+        .reply-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        
+        .message-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+        .reaction-badge { background: rgba(0,0,0,0.1); border-radius: 12px; padding: 2px 6px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+        .reaction-badge:hover { background: rgba(0,0,0,0.2); }
+        
+        .message-actions { display: none; gap: 8px; margin-top: 5px; }
+        .message:hover .message-actions { display: flex; }
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 5px; }
+        .action-btn:hover { background: rgba(0,0,0,0.1); }
+        
+        .reaction-picker { position: absolute; bottom: 100%; left: 0; background: white; border-radius: 20px; padding: 8px; display: flex; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100; }
+        .reaction-option { font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; transition: transform 0.2s; }
+        .reaction-option:hover { transform: scale(1.2); background: #f0f0f0; }
+        
+        .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; display: flex; gap: 5px; align-items: center; }
+        .read-status { font-size: 10px; }
+        
+        .input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #e0e0e0; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .reply-bar { width: 100%; background: #f0f0f0; padding: 8px 12px; border-radius: 10px; display: none; align-items: center; justify-content: space-between; }
+        .reply-bar.active { display: flex; }
+        .reply-bar button { background: none; border: none; cursor: pointer; font-size: 16px; }
+        .input-main { display: flex; flex: 1; gap: 10px; }
+        .input-area input { flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 25px; }
+        .input-area button { padding: 12px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 25px; cursor: pointer; }
+        .emoji-trigger, .voice-trigger { font-size: 24px; background: none; border: none; cursor: pointer; padding: 5px; }
+        .recording { animation: pulse 1s infinite; color: #f44336; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .emoji-picker { position: absolute; bottom: 70px; left: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 10px; display: none; grid-template-columns: repeat(8, 1fr); gap: 5px; z-index: 100; }
+        .emoji-picker.active { display: grid; }
+        .emoji-btn { font-size: 24px; cursor: pointer; padding: 5px; text-align: center; border-radius: 5px; }
+        .emoji-btn:hover { background: #f0f0f0; }
+        
+        .hidden { display: none; }
     </style>
 </head>
-<body class="dark">
+<body>
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <h1>🎥 Мессенджер</h1>
-            <p>С тёмной темой и звонками</p>
-            <input type="text" id="usernameInput" placeholder="Никнейм" maxlength="20">
+            <h1>💬 Мессенджер</h1>
+            <p>Реакции 👍 и ответы на сообщения</p>
+            <input type="text" id="nickname" placeholder="Ваш ник">
             <button onclick="login()">Войти</button>
-            <div id="loginError" class="error"></div>
+            <div id="error" class="error"></div>
         </div>
     </div>
 
-    <div id="mainApp" class="app hidden">
+    <div id="app" class="app hidden">
         <div class="sidebar">
             <div class="user-info">
-                <div>
-                    <h3 id="myUsername"></h3>
-                    <p style="font-size: 12px; opacity: 0.8;">🟢 Онлайн</p>
-                </div>
-                <div class="theme-selector">
-                    <div class="theme-btn theme-dark" onclick="changeTheme('dark')" title="Тёмная"></div>
-                    <div class="theme-btn theme-light" onclick="changeTheme('light')" title="Светлая"></div>
-                    <div class="theme-btn theme-blue" onclick="changeTheme('blue')" title="Синяя"></div>
-                </div>
+                <div><h3 id="myName"></h3><span style="font-size:12px">🟢 Онлайн</span></div>
+            </div>
+            <div class="invite-link">
+                🔗 Пригласить друга<br>
+                <button onclick="copyInvite()">📋 Копировать ссылку</button>
             </div>
             <div class="online-users">
-                <h4>👥 Пользователи онлайн</h4>
+                <h4>👥 Пользователи (<span id="onlineCount">0</span>)</h4>
                 <div id="usersList"></div>
             </div>
         </div>
-
         <div class="chat-area">
             <div class="chat-header">
-                <h2 id="chatTitle">💬 Выберите собеседника</h2>
+                <h2 id="chatWith">💬 Выберите собеседника</h2>
             </div>
             <div id="messages" class="messages"></div>
             <div id="typingIndicator" class="typing-indicator"></div>
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Введите сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
-                <button onclick="sendMessage()" disabled id="sendBtn">📤 Отправить</button>
+                <div id="replyBar" class="reply-bar">
+                    <span>↩️ Ответ на: <span id="replyText"></span></span>
+                    <button onclick="cancelReply()">✖</button>
+                </div>
+                <div class="input-main">
+                    <button class="emoji-trigger" onclick="toggleEmojiPicker()">😊</button>
+                    <div id="emojiPicker" class="emoji-picker"></div>
+                    <input type="text" id="messageInput" placeholder="Сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="voice-trigger" id="voiceBtn" onclick="toggleRecording()">🎤</button>
+                    <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="videoModal" class="video-modal">
-        <div class="video-container">
-            <div class="video-box">
-                <video id="localVideo" autoplay muted playsinline></video>
-                <div class="video-label">Вы</div>
-            </div>
-            <div class="video-box">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div class="video-label" id="remoteLabel">Собеседник</div>
-            </div>
-        </div>
-        <div class="call-controls">
-            <button onclick="toggleMicrophone()">🎤</button>
-            <button onclick="toggleCamera()">📷</button>
-            <button class="end-call" onclick="endCall()">📞</button>
-        </div>
-    </div>
+    <audio id="audioPlayer" style="display:none"></audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        let socket, currentUser, currentChatUser, peerConnection, localStream, currentCallType, typingTimeout;
+        let socket, currentUser, currentChatUser;
+        let mediaRecorder, audioChunks = [], isRecording = false;
+        let typingTimeout;
+        let replyToMessage = null;
         
-        // Конфигурация для звонков с TURN серверами
-        const configuration = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-            ]
-        };
-
-        // Смена темы
-        async function changeTheme(theme) {
-            document.body.className = theme;
-            if (currentUser) {
-                await fetch('/api/update-theme', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUser.userId, theme })
-                });
-            }
+        const emojis = ['😀', '😂', '😍', '😎', '😢', '😡', '👍', '❤️', '🔥', '🎉', '✨', '💀', '🥰', '😘', '😁', '🤣', '😊', '🙏', '💪', '👋'];
+        const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+        
+        function initEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            picker.innerHTML = emojis.map(e => `<div class="emoji-btn" onclick="addEmoji('${e}')">${e}</div>`).join('');
         }
-
+        
+        function toggleEmojiPicker() {
+            document.getElementById('emojiPicker').classList.toggle('active');
+        }
+        
+        function addEmoji(emoji) {
+            document.getElementById('messageInput').value += emoji;
+            toggleEmojiPicker();
+            document.getElementById('messageInput').focus();
+        }
+        
+        async function toggleRecording() {
+            if (isRecording) stopRecording();
+            else startRecording();
+        }
+        
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = async () => {
+                        const res = await fetch('/api/voice-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audioData: reader.result, fromId: currentUser.userId, toId: currentChatUser?.id })
+                        });
+                        const data = await res.json();
+                        if (data.success && currentChatUser) {
+                            socket.emit('private-message', { toUserId: currentChatUser.id, voice: data.url, text: null, replyTo: replyToMessage });
+                            cancelReply();
+                        }
+                    };
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('voiceBtn').textContent = '🔴';
+                document.getElementById('voiceBtn').classList.add('recording');
+                setTimeout(() => { if (isRecording) stopRecording(); }, 30000);
+            } catch { alert('Нет доступа к микрофону'); }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && isRecording) { mediaRecorder.stop(); isRecording = false; }
+            document.getElementById('voiceBtn').textContent = '🎤';
+            document.getElementById('voiceBtn').classList.remove('recording');
+        }
+        
+        function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
+        
         async function login() {
-            const username = document.getElementById('usernameInput').value.trim();
-            if (!username || username.length < 2) {
-                document.getElementById('loginError').textContent = 'Ник должен быть минимум 2 символа';
-                return;
-            }
-            
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
-            });
-            
+            const username = document.getElementById('nickname').value.trim();
+            if (!username) { document.getElementById('error').innerText = 'Введите ник'; return; }
+            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
             const data = await res.json();
-            if (data.error) {
-                document.getElementById('loginError').textContent = data.error;
-            } else {
+            if (data.error) document.getElementById('error').innerText = data.error;
+            else {
                 currentUser = data;
-                document.getElementById('myUsername').textContent = data.username;
+                document.getElementById('myName').innerText = data.username;
                 document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('app').classList.remove('hidden');
                 connectSocket();
+                initEmojiPicker();
             }
         }
-
+        
+        function copyInvite() { navigator.clipboard.writeText(window.location.href); alert('Ссылка скопирована!'); }
+        
         function connectSocket() {
             socket = io();
             socket.emit('user-online', { userId: currentUser.userId });
@@ -306,155 +217,162 @@
             socket.on('users-list', (users) => {
                 const container = document.getElementById('usersList');
                 const otherUsers = users.filter(u => u.id !== currentUser.userId);
-                container.innerHTML = otherUsers.map(user => `
-                    <div class="user-item">
-                        <div onclick="selectUser('${user.id}', '${user.username}')">${user.username} ${user.online ? '🟢' : '⚫'}</div>
-                        <div class="call-buttons">
-                            <button class="call-btn" onclick="event.stopPropagation(); startCall('${user.id}', 'audio')">🎤</button>
-                            <button class="call-btn" onclick="event.stopPropagation(); startCall('${user.id}', 'video')">📹</button>
-                        </div>
-                    </div>
-                `).join('');
+                document.getElementById('onlineCount').innerText = otherUsers.length;
+                container.innerHTML = otherUsers.map(user => `<div class="user-item" onclick="selectUser('${user.id}', '${user.username}')"><div><span class="user-status status-online"></span>${user.username}</div></div>`).join('');
             });
             
-            socket.on('new-message', (message) => {
-                if (currentChatUser && message.fromId === currentChatUser.id) {
-                    addMessage(false, message.text, message.time);
-                }
+            socket.on('new-message', (msg) => {
+                if (currentChatUser && msg.fromId === currentChatUser.id) { addMessage(msg, false); socket.emit('mark-read', { messageId: msg.id, fromUserId: msg.fromId }); }
             });
-            
+            socket.on('message-sent', (msg) => { if (currentChatUser && msg.toId === currentChatUser.id) addMessage(msg, true); });
+            socket.on('message-read', (data) => { updateReadStatus(data.messageId); });
+            socket.on('reaction-added', (data) => { updateReaction(data.messageId, data.reaction, data.fromId); });
             socket.on('user-typing', (data) => {
                 if (currentChatUser && data.fromId === currentChatUser.id) {
-                    document.getElementById('typingIndicator').textContent = `${data.fromName || 'Собеседник'} печатает...`;
-                    setTimeout(() => document.getElementById('typingIndicator').textContent = '', 2000);
+                    document.getElementById('typingIndicator').textContent = `${data.name} печатает...`;
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => document.getElementById('typingIndicator').textContent = '', 2000);
                 }
             });
-            
-            // ЗВОНКИ
-            socket.on('incoming-call', async (data) => {
-                if (confirm(`${data.fromName} звонит вам! Принять?`)) {
-                    currentChatUser = { id: data.fromId, username: data.fromName };
-                    await startLocalStream(data.type);
-                    await createPeerConnection();
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    socket.emit('answer-call', { toUserId: data.fromId, answer: answer });
-                    document.getElementById('videoModal').classList.add('active');
-                    document.getElementById('remoteLabel').textContent = data.fromName;
-                } else {
-                    socket.emit('end-call', { toUserId: data.fromId });
-                }
-            });
-            
-            socket.on('call-answered', async (data) => {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-                document.getElementById('videoModal').classList.add('active');
-            });
-            
-            socket.on('ice-candidate', async (data) => {
-                if (peerConnection) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-            });
-            
-            socket.on('call-ended', () => endCall());
         }
-
+        
         function selectUser(userId, username) {
-            currentChatUser = { id: userId, username: username };
-            document.getElementById('chatTitle').innerHTML = `💬 Чат с ${username}`;
+            currentChatUser = { id: userId, username };
+            document.getElementById('chatWith').innerHTML = `💬 Чат с ${username}`;
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messages').innerHTML = '';
+            cancelReply();
             loadMessages();
         }
-
+        
         async function loadMessages() {
             if (!currentChatUser) return;
             const res = await fetch(`/api/messages/${currentUser.userId}/${currentChatUser.id}`);
             const data = await res.json();
-            data.messages.forEach(msg => {
-                addMessage(msg.fromId === currentUser.userId, msg.text, msg.time);
-            });
+            data.messages.forEach(msg => { addMessage(msg, msg.fromId === currentUser.userId); if (msg.fromId !== currentUser.userId && !msg.read) socket.emit('mark-read', { messageId: msg.id, fromUserId: msg.fromId }); });
         }
-
+        
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             if (text && currentChatUser && socket) {
-                socket.emit('private-message', { toUserId: currentChatUser.id, message: text });
-                addMessage(true, text, new Date().toLocaleTimeString());
+                socket.emit('private-message', { toUserId: currentChatUser.id, text, voice: null, replyTo: replyToMessage });
                 input.value = '';
+                cancelReply();
             }
         }
-
-        function addMessage(isOwn, text, time) {
+        
+        function replyToMessageFunc(msg) {
+            replyToMessage = { id: msg.id, text: msg.text?.substring(0, 50) + (msg.text?.length > 50 ? '...' : ''), from: msg.fromId === currentUser.userId ? 'Вы' : currentChatUser?.username };
+            document.getElementById('replyBar').classList.add('active');
+            document.getElementById('replyText').innerText = `${replyToMessage.from}: ${replyToMessage.text || 'Голосовое сообщение'}`;
+            document.getElementById('messageInput').focus();
+        }
+        
+        function cancelReply() { replyToMessage = null; document.getElementById('replyBar').classList.remove('active'); }
+        
+        function addReaction(messageId, reaction) {
+            if (!currentChatUser) return;
+            socket.emit('add-reaction', { messageId, reaction, toUserId: currentChatUser.id });
+        }
+        
+        function showReactionPicker(messageId, event) {
+            event.stopPropagation();
+            const existing = document.querySelector('.reaction-picker');
+            if (existing) existing.remove();
+            const picker = document.createElement('div');
+            picker.className = 'reaction-picker';
+            picker.style.position = 'absolute';
+            picker.style.left = event.target.offsetLeft + 'px';
+            picker.style.top = (event.target.offsetTop - 40) + 'px';
+            reactionEmojis.forEach(emoji => {
+                const btn = document.createElement('span');
+                btn.className = 'reaction-option';
+                btn.textContent = emoji;
+                btn.onclick = () => { addReaction(messageId, emoji); picker.remove(); };
+                picker.appendChild(btn);
+            });
+            document.body.appendChild(picker);
+            setTimeout(() => { if (document.body.contains(picker)) picker.remove(); }, 3000);
+        }
+        
+        function updateReaction(messageId, reaction, fromId) {
+            const msgDiv = document.querySelector(`.message[data-id="${messageId}"]`);
+            if (!msgDiv) return;
+            let reactionsDiv = msgDiv.querySelector('.message-reactions');
+            if (!reactionsDiv) {
+                reactionsDiv = document.createElement('div');
+                reactionsDiv.className = 'message-reactions';
+                msgDiv.appendChild(reactionsDiv);
+            }
+            const existingReaction = reactionsDiv.querySelector(`.reaction-badge[data-reaction="${reaction}"]`);
+            if (existingReaction) {
+                let count = parseInt(existingReaction.dataset.count) || 1;
+                existingReaction.dataset.count = count + 1;
+                existingReaction.innerHTML = `${reaction} ${count + 1}`;
+            } else {
+                const badge = document.createElement('span');
+                badge.className = 'reaction-badge';
+                badge.setAttribute('data-reaction', reaction);
+                badge.setAttribute('data-count', '1');
+                badge.innerHTML = `${reaction} 1`;
+                badge.onclick = (e) => { e.stopPropagation(); addReaction(messageId, reaction); };
+                reactionsDiv.appendChild(badge);
+            }
+        }
+        
+        function updateReadStatus(messageId) {
+            const msgDiv = document.querySelector(`.message[data-id="${messageId}"]`);
+            if (msgDiv) { const readSpan = msgDiv.querySelector('.read-status'); if (readSpan) readSpan.textContent = '✓✓ прочитано'; }
+        }
+        
+        function addMessage(msg, isOwn) {
             const messagesDiv = document.getElementById('messages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${isOwn ? 'own' : 'other'}`;
-            msgDiv.innerHTML = `<div class="message-sender">${isOwn ? 'Вы' : currentChatUser?.username}</div><div>${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-            messagesDiv.appendChild(msgDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        // ЗВОНКИ
-        async function startCall(toUserId, type) {
-            currentCallType = type;
-            await startLocalStream(type);
-            await createPeerConnection();
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.emit('call-user', { toUserId: toUserId, offer: offer, type: type });
-        }
-        
-        async function startLocalStream(type) {
-            if (localStream) localStream.getTracks().forEach(track => track.stop());
-            try {
-                if (type === 'video') {
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                } else {
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                }
-                const localVideo = document.getElementById('localVideo');
-                if (localVideo && type === 'video') localVideo.srcObject = localStream;
-            } catch (error) {
-                alert('Не удалось получить доступ к камере/микрофону. Разрешите доступ в браузере.');
+            const div = document.createElement('div');
+            div.className = `message ${isOwn ? 'own' : 'other'}`;
+            div.setAttribute('data-id', msg.id);
+            
+            let replyHtml = '';
+            if (msg.replyTo) {
+                replyHtml = `<div class="reply-preview">↩️ Ответ на <strong>${msg.replyTo.from || 'сообщение'}</strong>: <div class="reply-text">${escapeHtml(msg.replyTo.text || 'Голосовое')}</div></div>`;
             }
+            
+            let content = '';
+            if (msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
+            else if (msg.voice) content = `<div class="voice-message" onclick="playVoice('${msg.voice}')"><span>🔊 Голосовое сообщение</span></div>`;
+            
+            let reactionsHtml = '';
+            if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+                const reactionCounts = {};
+                Object.values(msg.reactions).forEach(r => { reactionCounts[r] = (reactionCounts[r] || 0) + 1; });
+                reactionsHtml = `<div class="message-reactions">${Object.entries(reactionCounts).map(([r, c]) => `<span class="reaction-badge" onclick="addReaction('${msg.id}', '${r}')">${r} ${c}</span>`).join('')}</div>`;
+            }
+            
+            const readStatus = isOwn ? (msg.read ? '✓✓ прочитано' : (msg.delivered ? '✓✓ доставлено' : '✓ отправлено')) : '';
+            
+            div.innerHTML = `
+                <div class="message-sender">${isOwn ? 'Вы' : currentChatUser?.username}</div>
+                ${replyHtml}
+                ${content}
+                ${reactionsHtml}
+                <div class="message-actions">
+                    <button class="action-btn" onclick="replyToMessageFunc({id:'${msg.id}', text:'${escapeHtml(msg.text || 'Голосовое')}', from:'${isOwn ? currentUser.username : currentChatUser?.username}'})">↩️ Ответить</button>
+                    <button class="action-btn" onclick="showReactionPicker('${msg.id}', event)">😊 Реакция</button>
+                </div>
+                <div class="message-time">
+                    ${msg.time}
+                    <span class="read-status">${readStatus}</span>
+                </div>
+            `;
+            messagesDiv.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth' });
         }
         
-        async function createPeerConnection() {
-            peerConnection = new RTCPeerConnection(configuration);
-            if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            peerConnection.ontrack = (event) => { document.getElementById('remoteVideo').srcObject = event.streams[0]; };
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate && currentChatUser) {
-                    socket.emit('ice-candidate', { toUserId: currentChatUser.id, candidate: event.candidate });
-                }
-            };
-        }
-        
-        function endCall() {
-            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            document.getElementById('videoModal').classList.remove('hidden');
-            document.getElementById('videoModal').classList.remove('active');
-            if (currentChatUser) socket.emit('end-call', { toUserId: currentChatUser.id });
-        }
-        
-        function toggleMicrophone() {
-            if (localStream) { const track = localStream.getAudioTracks()[0]; if (track) track.enabled = !track.enabled; }
-        }
-        
-        function toggleCamera() {
-            if (localStream) { const track = localStream.getVideoTracks()[0]; if (track) track.enabled = !track.enabled; }
-        }
-        
-        document.getElementById('messageInput').addEventListener('input', () => {
-            if (socket && currentChatUser) socket.emit('typing', { toUserId: currentChatUser.id });
-        });
+        document.getElementById('messageInput').addEventListener('input', () => { if (socket && currentChatUser) socket.emit('typing', { toUserId: currentChatUser.id }); });
         
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
     </script>
 </body>
 </html>
+EOF
