@@ -32,6 +32,8 @@ db.serialize(() => {
         to_id TEXT,
         text TEXT,
         voice TEXT,
+        reply_to TEXT,
+        reactions TEXT,
         read INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
@@ -56,11 +58,8 @@ db.serialize(() => {
         }
     });
     
-    // Код дружбы
     db.get("SELECT * FROM invite_codes WHERE code = 'FRIEND2024'", (err, code) => {
-        if (!code) {
-            db.run("INSERT INTO invite_codes (code, uses_left) VALUES ('FRIEND2024', 10000)");
-        }
+        if (!code) db.run("INSERT INTO invite_codes (code, uses_left) VALUES ('FRIEND2024', 10000)");
     });
 });
 
@@ -89,13 +88,10 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
         if (!user) return res.json({ error: 'Пользователь не найден' });
-        
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.json({ error: 'Неверный пароль' });
-        
         db.run("UPDATE users SET online = 1 WHERE id = ?", [user.id]);
         res.json({ success: true, userId: user.id, username: user.username, role: user.role });
     });
@@ -126,7 +122,6 @@ app.get('/api/friends/:userId', (req, res) => {
 
 app.get('/api/messages/:userId/:friendId', (req, res) => {
     db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [req.params.userId, req.params.friendId]);
-    
     db.all(`SELECT * FROM messages 
             WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
             ORDER BY created_at ASC LIMIT 200`, 
@@ -153,127 +148,105 @@ io.on('connection', (socket) => {
     socket.on('login', (data) => {
         currentUser = { id: data.userId, name: data.username };
         onlineUsers.set(data.userId, { socketId: socket.id, name: data.username });
-        
-        // Отправляем список онлайн
         const list = [];
-        for (let [id, user] of onlineUsers) {
-            list.push({ id, name: user.name });
-        }
+        for (let [id, user] of onlineUsers) list.push({ id, name: user.name });
         io.emit('online-list', list);
     });
     
-    // Обычное сообщение
+    // Сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
-        
-        db.run("INSERT INTO messages (id, from_id, to_id, text) VALUES (?, ?, ?, ?)", 
-            [messageId, currentUser.id, data.to, data.text]);
-        
+        db.run("INSERT INTO messages (id, from_id, to_id, text, reply_to) VALUES (?, ?, ?, ?, ?)", 
+            [messageId, currentUser.id, data.to, data.text, data.replyTo || null]);
         db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
-                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, 
-                [data.to, currentUser.id]);
+                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUser.id]);
         
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
             io.to(toUser.socketId).emit('message', {
-                id: messageId,
-                from: currentUser.id,
-                fromName: currentUser.name,
-                text: data.text,
-                time: time
+                id: messageId, from: currentUser.id, fromName: currentUser.name,
+                text: data.text, replyTo: data.replyTo, time: time
             });
-            
             db.get("SELECT count FROM unread WHERE user_id = ? AND from_id = ?", [data.to, currentUser.id], (err, cnt) => {
                 io.to(toUser.socketId).emit('unread-update', { fromId: currentUser.id, count: cnt?.count || 1 });
             });
         }
-        
-        socket.emit('message-sent', { id: messageId, text: data.text, time: time });
+        socket.emit('message-sent', { id: messageId, text: data.text, replyTo: data.replyTo, time: time });
     });
     
-    // Голосовое сообщение
+    // Голосовое
     socket.on('voice-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
-        
         db.run("INSERT INTO messages (id, from_id, to_id, voice) VALUES (?, ?, ?, ?)", 
             [messageId, currentUser.id, data.to, data.voiceUrl]);
-        
         db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
-                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, 
-                [data.to, currentUser.id]);
+                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUser.id]);
         
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
             io.to(toUser.socketId).emit('voice-message', {
-                id: messageId,
-                from: currentUser.id,
-                fromName: currentUser.name,
-                voiceUrl: data.voiceUrl,
-                time: time
+                id: messageId, from: currentUser.id, fromName: currentUser.name,
+                voiceUrl: data.voiceUrl, time: time
             });
-            
             db.get("SELECT count FROM unread WHERE user_id = ? AND from_id = ?", [data.to, currentUser.id], (err, cnt) => {
                 io.to(toUser.socketId).emit('unread-update', { fromId: currentUser.id, count: cnt?.count || 1 });
             });
         }
     });
     
-    // ========== ЗВОНКИ ==========
+    // Реакция
+    socket.on('add-reaction', (data) => {
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('reaction-added', {
+                messageId: data.messageId, reaction: data.reaction, fromId: currentUser.id
+            });
+        }
+    });
+    
+    // Звонки
     socket.on('call-user', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
             io.to(toUser.socketId).emit('incoming-call', {
-                fromId: currentUser.id,
-                fromName: currentUser.name,
-                offer: data.offer,
-                type: data.type
+                fromId: currentUser.id, fromName: currentUser.name,
+                offer: data.offer, type: data.type
             });
         }
     });
     
     socket.on('answer-call', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('call-answered', { answer: data.answer });
-        }
+        if (toUser) io.to(toUser.socketId).emit('call-answered', { answer: data.answer });
     });
     
     socket.on('ice-candidate', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('ice-candidate', { candidate: data.candidate });
-        }
+        if (toUser) io.to(toUser.socketId).emit('ice-candidate', { candidate: data.candidate });
     });
     
     socket.on('end-call', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('call-ended');
-        }
+        if (toUser) io.to(toUser.socketId).emit('call-ended');
     });
     
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
-        if (toUser) {
-            io.to(toUser.socketId).emit('typing', { from: currentUser.name });
-        }
+        if (toUser) io.to(toUser.socketId).emit('typing', { from: currentUser.name });
     });
     
     socket.on('disconnect', () => {
         if (currentUser) {
             onlineUsers.delete(currentUser.id);
             db.run("UPDATE users SET online = 0 WHERE id = ?", [currentUser.id]);
-            
             const list = [];
-            for (let [id, user] of onlineUsers) {
-                list.push({ id, name: user.name });
-            }
+            for (let [id, user] of onlineUsers) list.push({ id, name: user.name });
             io.emit('online-list', list);
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`✅ Сервер запущен на ${PORT}`));
+server.listen(PORT, () => console.log(`✅ Сервер на ${PORT}`));
