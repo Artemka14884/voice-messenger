@@ -1,13 +1,12 @@
-cat > public/index.html << 'EOF'
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер - Реакции и ответы на сообщения</title>
+    <title>Мессенджер - Полная версия</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
         
         .login-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .login-box { background: white; padding: 40px; border-radius: 20px; width: 350px; text-align: center; }
@@ -15,49 +14,49 @@ cat > public/index.html << 'EOF'
         .login-box button { width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 10px; cursor: pointer; }
         .error { color: red; margin-top: 10px; }
         
-        .app { display: flex; height: 100vh; }
-        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; }
-        .user-info { padding: 20px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
-        .invite-link { background: #0f3460; padding: 12px; margin: 15px; border-radius: 10px; text-align: center; }
-        .invite-link button { margin-top: 8px; padding: 5px 10px; background: #4CAF50; border: none; border-radius: 5px; color: white; cursor: pointer; }
-        .online-users { flex: 1; overflow-y: auto; padding: 15px; }
+        .app { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; overflow-y: auto; }
+        .user-info { padding: 20px; background: #0f3460; }
+        .invite-section { background: #0f3460; margin: 15px; padding: 12px; border-radius: 10px; text-align: center; }
+        .invite-section button { margin-top: 8px; padding: 5px 10px; background: #4CAF50; border: none; border-radius: 5px; color: white; cursor: pointer; }
+        .online-users { flex: 1; padding: 15px; overflow-y: auto; }
         .user-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .user-item:hover { background: #1a1a4e; }
-        .user-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .status-online { background: #4CAF50; }
+        .user-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
         
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; overflow: hidden; }
         .chat-header { background: white; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
-        .typing-indicator { padding: 10px 20px; font-size: 12px; color: #666; font-style: italic; min-height: 40px; background: #fff; }
         .messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .typing-indicator { padding: 10px 20px; font-size: 12px; color: #666; font-style: italic; background: #fff; border-top: 1px solid #e0e0e0; }
         
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; position: relative; }
+        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; position: relative; word-wrap: break-word; }
         .message.own { background: linear-gradient(135deg, #667eea, #764ba2); color: white; align-self: flex-end; }
         .message.other { background: white; color: #333; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         
-        .reply-preview { font-size: 11px; opacity: 0.7; margin-bottom: 5px; padding-left: 10px; border-left: 2px solid; margin-top: 5px; }
-        .reply-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .reply-preview { font-size: 11px; opacity: 0.8; margin-bottom: 5px; padding-left: 8px; border-left: 2px solid; }
+        .reply-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
         
         .message-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-        .reaction-badge { background: rgba(0,0,0,0.1); border-radius: 12px; padding: 2px 6px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
-        .reaction-badge:hover { background: rgba(0,0,0,0.2); }
+        .reaction-badge { background: rgba(0,0,0,0.1); border-radius: 12px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
         
         .message-actions { display: none; gap: 8px; margin-top: 5px; }
         .message:hover .message-actions { display: flex; }
-        .action-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 5px; border-radius: 5px; }
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 12px; padding: 2px 5px; border-radius: 5px; }
         .action-btn:hover { background: rgba(0,0,0,0.1); }
         
-        .reaction-picker { position: absolute; bottom: 100%; left: 0; background: white; border-radius: 20px; padding: 8px; display: flex; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100; }
-        .reaction-option { font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; transition: transform 0.2s; }
-        .reaction-option:hover { transform: scale(1.2); background: #f0f0f0; }
+        .reaction-picker { position: fixed; background: white; border-radius: 30px; padding: 8px 12px; display: flex; gap: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; }
+        .reaction-option { font-size: 24px; cursor: pointer; padding: 5px; transition: transform 0.2s; }
+        .reaction-option:hover { transform: scale(1.2); }
         
-        .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; display: flex; gap: 5px; align-items: center; }
+        .voice-message { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .voice-play { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+        
+        .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; display: flex; gap: 5px; }
         .read-status { font-size: 10px; }
         
         .input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #e0e0e0; gap: 10px; align-items: center; flex-wrap: wrap; }
         .reply-bar { width: 100%; background: #f0f0f0; padding: 8px 12px; border-radius: 10px; display: none; align-items: center; justify-content: space-between; }
         .reply-bar.active { display: flex; }
-        .reply-bar button { background: none; border: none; cursor: pointer; font-size: 16px; }
         .input-main { display: flex; flex: 1; gap: 10px; }
         .input-area input { flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 25px; }
         .input-area button { padding: 12px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 25px; cursor: pointer; }
@@ -65,11 +64,9 @@ cat > public/index.html << 'EOF'
         .recording { animation: pulse 1s infinite; color: #f44336; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         
-        .emoji-picker { position: absolute; bottom: 70px; left: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 10px; display: none; grid-template-columns: repeat(8, 1fr); gap: 5px; z-index: 100; }
+        .emoji-picker { position: absolute; bottom: 80px; left: 20px; background: white; border-radius: 10px; padding: 10px; display: none; grid-template-columns: repeat(8, 1fr); gap: 5px; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .emoji-picker.active { display: grid; }
-        .emoji-btn { font-size: 24px; cursor: pointer; padding: 5px; text-align: center; border-radius: 5px; }
-        .emoji-btn:hover { background: #f0f0f0; }
-        
+        .emoji-btn { font-size: 24px; cursor: pointer; padding: 5px; text-align: center; }
         .hidden { display: none; }
     </style>
 </head>
@@ -77,7 +74,7 @@ cat > public/index.html << 'EOF'
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <h1>💬 Мессенджер</h1>
-            <p>Реакции 👍 и ответы на сообщения</p>
+            <p>С реакциями, ответами и голосовыми</p>
             <input type="text" id="nickname" placeholder="Ваш ник">
             <button onclick="login()">Войти</button>
             <div id="error" class="error"></div>
@@ -89,7 +86,7 @@ cat > public/index.html << 'EOF'
             <div class="user-info">
                 <div><h3 id="myName"></h3><span style="font-size:12px">🟢 Онлайн</span></div>
             </div>
-            <div class="invite-link">
+            <div class="invite-section">
                 🔗 Пригласить друга<br>
                 <button onclick="copyInvite()">📋 Копировать ссылку</button>
             </div>
@@ -137,15 +134,8 @@ cat > public/index.html << 'EOF'
             picker.innerHTML = emojis.map(e => `<div class="emoji-btn" onclick="addEmoji('${e}')">${e}</div>`).join('');
         }
         
-        function toggleEmojiPicker() {
-            document.getElementById('emojiPicker').classList.toggle('active');
-        }
-        
-        function addEmoji(emoji) {
-            document.getElementById('messageInput').value += emoji;
-            toggleEmojiPicker();
-            document.getElementById('messageInput').focus();
-        }
+        function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('active'); }
+        function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; toggleEmojiPicker(); document.getElementById('messageInput').focus(); }
         
         async function toggleRecording() {
             if (isRecording) stopRecording();
@@ -166,7 +156,7 @@ cat > public/index.html << 'EOF'
                         const res = await fetch('/api/voice-message', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audioData: reader.result, fromId: currentUser.userId, toId: currentChatUser?.id })
+                            body: JSON.stringify({ audioData: reader.result, fromId: currentUser.userId })
                         });
                         const data = await res.json();
                         if (data.success && currentChatUser) {
@@ -208,7 +198,7 @@ cat > public/index.html << 'EOF'
             }
         }
         
-        function copyInvite() { navigator.clipboard.writeText(window.location.href); alert('Ссылка скопирована!'); }
+        function copyInvite() { navigator.clipboard.writeText(window.location.href); alert('Ссылка скопирована! Отправьте другу.\n\nПривет! Я использую этот мессенджер. Присоединяйся: ' + window.location.href); }
         
         function connectSocket() {
             socket = io();
@@ -218,7 +208,7 @@ cat > public/index.html << 'EOF'
                 const container = document.getElementById('usersList');
                 const otherUsers = users.filter(u => u.id !== currentUser.userId);
                 document.getElementById('onlineCount').innerText = otherUsers.length;
-                container.innerHTML = otherUsers.map(user => `<div class="user-item" onclick="selectUser('${user.id}', '${user.username}')"><div><span class="user-status status-online"></span>${user.username}</div></div>`).join('');
+                container.innerHTML = otherUsers.map(user => `<div class="user-item" onclick="selectUser('${user.id}', '${user.username}')"><div><span class="user-status"></span>${user.username}</div></div>`).join('');
             });
             
             socket.on('new-message', (msg) => {
@@ -264,18 +254,15 @@ cat > public/index.html << 'EOF'
         }
         
         function replyToMessageFunc(msg) {
-            replyToMessage = { id: msg.id, text: msg.text?.substring(0, 50) + (msg.text?.length > 50 ? '...' : ''), from: msg.fromId === currentUser.userId ? 'Вы' : currentChatUser?.username };
+            replyToMessage = { id: msg.id, text: (msg.text || 'Голосовое').substring(0, 40) + ((msg.text?.length > 40) ? '...' : ''), from: msg.fromId === currentUser.userId ? 'Вы' : currentChatUser?.username };
             document.getElementById('replyBar').classList.add('active');
-            document.getElementById('replyText').innerText = `${replyToMessage.from}: ${replyToMessage.text || 'Голосовое сообщение'}`;
+            document.getElementById('replyText').innerText = `${replyToMessage.from}: ${replyToMessage.text}`;
             document.getElementById('messageInput').focus();
         }
         
         function cancelReply() { replyToMessage = null; document.getElementById('replyBar').classList.remove('active'); }
         
-        function addReaction(messageId, reaction) {
-            if (!currentChatUser) return;
-            socket.emit('add-reaction', { messageId, reaction, toUserId: currentChatUser.id });
-        }
+        function addReaction(messageId, reaction) { if (currentChatUser) socket.emit('add-reaction', { messageId, reaction, toUserId: currentChatUser.id }); }
         
         function showReactionPicker(messageId, event) {
             event.stopPropagation();
@@ -283,9 +270,9 @@ cat > public/index.html << 'EOF'
             if (existing) existing.remove();
             const picker = document.createElement('div');
             picker.className = 'reaction-picker';
-            picker.style.position = 'absolute';
-            picker.style.left = event.target.offsetLeft + 'px';
-            picker.style.top = (event.target.offsetTop - 40) + 'px';
+            const rect = event.target.getBoundingClientRect();
+            picker.style.left = rect.left + 'px';
+            picker.style.top = (rect.top - 50) + 'px';
             reactionEmojis.forEach(emoji => {
                 const btn = document.createElement('span');
                 btn.className = 'reaction-option';
@@ -309,8 +296,9 @@ cat > public/index.html << 'EOF'
             const existingReaction = reactionsDiv.querySelector(`.reaction-badge[data-reaction="${reaction}"]`);
             if (existingReaction) {
                 let count = parseInt(existingReaction.dataset.count) || 1;
-                existingReaction.dataset.count = count + 1;
-                existingReaction.innerHTML = `${reaction} ${count + 1}`;
+                count++;
+                existingReaction.dataset.count = count;
+                existingReaction.innerHTML = `${reaction} ${count}`;
             } else {
                 const badge = document.createElement('span');
                 badge.className = 'reaction-badge';
@@ -335,21 +323,21 @@ cat > public/index.html << 'EOF'
             
             let replyHtml = '';
             if (msg.replyTo) {
-                replyHtml = `<div class="reply-preview">↩️ Ответ на <strong>${msg.replyTo.from || 'сообщение'}</strong>: <div class="reply-text">${escapeHtml(msg.replyTo.text || 'Голосовое')}</div></div>`;
+                replyHtml = `<div class="reply-preview">↩️ Ответ на <strong>${msg.replyTo.from}</strong>: <div class="reply-text">${escapeHtml(msg.replyTo.text || 'Голосовое')}</div></div>`;
             }
             
             let content = '';
             if (msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
-            else if (msg.voice) content = `<div class="voice-message" onclick="playVoice('${msg.voice}')"><span>🔊 Голосовое сообщение</span></div>`;
+            else if (msg.voice) content = `<div class="voice-message" onclick="playVoice('${msg.voice}')"><div class="voice-play">🔊</div><span>Голосовое сообщение</span></div>`;
             
             let reactionsHtml = '';
             if (msg.reactions && Object.keys(msg.reactions).length > 0) {
                 const reactionCounts = {};
                 Object.values(msg.reactions).forEach(r => { reactionCounts[r] = (reactionCounts[r] || 0) + 1; });
-                reactionsHtml = `<div class="message-reactions">${Object.entries(reactionCounts).map(([r, c]) => `<span class="reaction-badge" onclick="addReaction('${msg.id}', '${r}')">${r} ${c}</span>`).join('')}</div>`;
+                reactionsHtml = `<div class="message-reactions">${Object.entries(reactionCounts).map(([r, c]) => `<span class="reaction-badge" data-reaction="${r}" data-count="${c}" onclick="addReaction('${msg.id}', '${r}')">${r} ${c}</span>`).join('')}</div>`;
             }
             
-            const readStatus = isOwn ? (msg.read ? '✓✓ прочитано' : (msg.delivered ? '✓✓ доставлено' : '✓ отправлено')) : '';
+            const readStatus = isOwn ? (msg.read ? '✓✓ прочитано' : '✓ отправлено') : '';
             
             div.innerHTML = `
                 <div class="message-sender">${isOwn ? 'Вы' : currentChatUser?.username}</div>
@@ -372,7 +360,12 @@ cat > public/index.html << 'EOF'
         document.getElementById('messageInput').addEventListener('input', () => { if (socket && currentChatUser) socket.emit('typing', { toUserId: currentChatUser.id }); });
         
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        // Авто-скролл вниз при новых сообщениях
+        const messagesDiv = document.getElementById('messages');
+        function scrollToBottom() { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+        const observer = new MutationObserver(() => scrollToBottom());
+        observer.observe(messagesDiv, { childList: true, subtree: true });
     </script>
 </body>
 </html>
-EOF
