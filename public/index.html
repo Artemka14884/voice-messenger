@@ -456,7 +456,7 @@
             if (data.messages.length === 0) container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
             else data.messages.forEach(msg => {
                 const isOwn = msg.from_id === currentUser.userId;
-                addMessageToChat(msg.text, msg.file, msg.type === 'image', null, msg.time, isOwn);
+                addMessageToChat(msg.text, msg.file, msg.file_type === 'image', null, msg.time, isOwn);
             });
             scrollToBottom();
         }
@@ -494,7 +494,7 @@
         
         function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
         
-        // ========== ЗВОНКИ ==========
+        // ========== ЗВОНКИ (ИСПРАВЛЕНЫ) ==========
         async function startCall(type) {
             if (!currentChat || currentChat.type !== 'user') { alert('Выберите пользователя'); return; }
             try {
@@ -507,7 +507,7 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 socket.emit('call-user', { toUserId: currentChat.id, offer, type });
-                currentCall = { type, toId: currentChat.id };
+                currentCall = { type, toId: currentChat.id, fromId: currentChat.id };
                 document.getElementById('callerName').innerHTML = currentChat.name;
                 document.getElementById('callStatus').innerHTML = 'Звоним...';
                 document.getElementById('callActions').style.display = 'flex';
