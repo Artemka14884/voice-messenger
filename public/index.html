@@ -597,61 +597,146 @@
         function stopRecording() { if (mediaRecorder && isRecording) { mediaRecorder.stop(); isRecording = false; } const btn = document.getElementById('voiceRecordBtn'); btn.textContent = '🎤'; btn.classList.remove('recording'); }
         function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
         
+        // ========== РАБОТАЮЩИЕ ЗВОНКИ ==========
         async function startCall(type) {
-            if (!currentChat || currentChat.type !== 'user') return;
+            if (!currentChat || currentChat.type !== 'user') {
+                alert('Выберите пользователя для звонка');
+                return;
+            }
+            
             try {
-                if (type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                if (type === 'video') {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                } else {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
                 peerConnection = new RTCPeerConnection(config);
-                localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-                peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
-                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentChat.id, candidate: e.candidate }); };
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                
+                peerConnection.ontrack = (event) => {
+                    const remoteVideo = document.getElementById('remoteVideo');
+                    if (remoteVideo) remoteVideo.srcObject = event.streams[0];
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', { toUserId: currentChat.id, candidate: event.candidate });
+                    }
+                };
+                
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
-                socket.emit('call-user', { toUserId: currentChat.id, offer, type });
-                currentCall = { type, toId: currentChat.id };
-                showCallModal(currentChat.name, 'outgoing', type);
-                if (type === 'video') { document.getElementById('localVideo').srcObject = localStream; document.getElementById('callVideoContainer').style.display = 'flex'; }
-            } catch(e) { alert('Нет доступа'); }
+                
+                socket.emit('call-user', { toUserId: currentChat.id, offer: offer, type: type });
+                
+                currentCall = { type: type, toId: currentChat.id, fromId: currentChat.id };
+                
+                document.getElementById('callerName').innerHTML = currentChat.name;
+                document.getElementById('callStatus').innerHTML = 'Звоним...';
+                document.getElementById('callActions').style.display = 'flex';
+                document.getElementById('callControls').style.display = 'none';
+                document.getElementById('callVideoContainer').style.display = 'none';
+                document.getElementById('callModal').classList.add('active');
+                
+                if (type === 'video') {
+                    document.getElementById('localVideo').srcObject = localStream;
+                    document.getElementById('callVideoContainer').style.display = 'flex';
+                }
+                
+            } catch (error) {
+                console.error('Ошибка звонка:', error);
+                alert('Не удалось получить доступ к камере/микрофону');
+            }
         }
         
         async function acceptCall() {
             if (!currentCall) return;
+            
             try {
-                if (currentCall.type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                if (currentCall.type === 'video') {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                } else {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                }
+                
                 peerConnection = new RTCPeerConnection(config);
-                localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-                peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
-                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentCall.fromId, candidate: e.candidate }); };
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                
+                peerConnection.ontrack = (event) => {
+                    document.getElementById('remoteVideo').srcObject = event.streams[0];
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', { toUserId: currentCall.fromId, candidate: event.candidate });
+                    }
+                };
+                
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
                 const answer = await peerConnection.createAnswer();
                 await peerConnection.setLocalDescription(answer);
-                socket.emit('answer-call', { toUserId: currentCall.fromId, answer });
+                
+                socket.emit('answer-call', { toUserId: currentCall.fromId, answer: answer });
+                
                 document.getElementById('callStatus').innerHTML = 'В разговоре...';
                 document.getElementById('callActions').style.display = 'none';
                 document.getElementById('callControls').style.display = 'flex';
-                if (currentCall.type === 'video') { document.getElementById('localVideo').srcObject = localStream; document.getElementById('callVideoContainer').style.display = 'flex'; }
-            } catch(e) { console.error(e); }
+                document.getElementById('callVideoContainer').style.display = 'flex';
+                document.getElementById('localVideo').srcObject = localStream;
+                
+            } catch (error) {
+                console.error('Ошибка принятия звонка:', error);
+            }
         }
         
-        function declineCall() { if (currentCall) { socket.emit('end-call', { toUserId: currentCall.fromId }); closeCallModal(); } }
-        function endCall() { if (peerConnection) peerConnection.close(); if (localStream) localStream.getTracks().forEach(t => t.stop()); if (currentCall) socket.emit('end-call', { toUserId: currentCall.fromId || currentCall.toId }); closeCallModal(); peerConnection = null; localStream = null; }
-        function minimizeCall() { document.getElementById('callModal').classList.remove('active'); alert('Звонок свёрнут'); }
-        function toggleMic() { if (localStream) { const t = localStream.getAudioTracks()[0]; if (t) t.enabled = !t.enabled; } }
-        function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
+        function declineCall() {
+            if (currentCall) {
+                socket.emit('end-call', { toUserId: currentCall.fromId });
+                closeCallModal();
+            }
+        }
         
-        function showCallModal(name, type, callType) {
-            document.getElementById('callerName').innerHTML = name;
-            document.getElementById('callStatus').innerHTML = type === 'incoming' ? 'Входящий звонок...' : 'Звоним...';
-            document.getElementById('callActions').style.display = 'flex';
-            document.getElementById('callControls').style.display = 'none';
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (currentCall) {
+                socket.emit('end-call', { toUserId: currentCall.fromId || currentCall.toId });
+            }
+            closeCallModal();
+        }
+        
+        function minimizeCall() {
+            document.getElementById('callModal').classList.remove('active');
+        }
+        
+        function toggleMic() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) audioTrack.enabled = !audioTrack.enabled;
+            }
+        }
+        
+        function toggleVideo() {
+            if (localStream) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) videoTrack.enabled = !videoTrack.enabled;
+            }
+        }
+        
+        function closeCallModal() {
+            document.getElementById('callModal').classList.remove('active');
             document.getElementById('callVideoContainer').style.display = 'none';
-            document.getElementById('callModal').classList.add('active');
-            if (type === 'incoming') document.getElementById('ringtone').play().catch(e => console.log);
+            if (document.getElementById('remoteVideo')) {
+                document.getElementById('remoteVideo').srcObject = null;
+            }
         }
-        
-        function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('ringtone').pause(); document.getElementById('ringtone').currentTime = 0; }
         
         function connectSocket() {
             socket = io();
@@ -694,10 +779,50 @@
             });
             socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
             socket.on('online-list', () => loadFriends());
-            socket.on('incoming-call', (data) => { currentCall = { fromId: data.fromId, fromName: data.fromName, offer: data.offer, type: data.type }; showCallModal(data.fromName, 'incoming', data.type); });
-            socket.on('call-answered', async (data) => { await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('callStatus').innerHTML = 'В разговоре...'; document.getElementById('callActions').style.display = 'none'; document.getElementById('callControls').style.display = 'flex'; });
-            socket.on('ice-candidate', async (data) => { if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); });
-            socket.on('call-ended', () => endCall());
+            
+            // Звонки - входящий
+            socket.on('incoming-call', (data) => {
+                currentCall = {
+                    fromId: data.fromId,
+                    fromName: data.fromName,
+                    offer: data.offer,
+                    type: data.type
+                };
+                
+                document.getElementById('callerName').innerHTML = data.fromName;
+                document.getElementById('callStatus').innerHTML = 'Входящий звонок...';
+                document.getElementById('callActions').style.display = 'flex';
+                document.getElementById('callControls').style.display = 'none';
+                document.getElementById('callVideoContainer').style.display = 'none';
+                document.getElementById('callModal').classList.add('active');
+                
+                const ringtone = document.getElementById('ringtone');
+                if (ringtone) ringtone.play().catch(e => console.log);
+            });
+            
+            // Звонок принят
+            socket.on('call-answered', async (data) => {
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    document.getElementById('callStatus').innerHTML = 'В разговоре...';
+                    document.getElementById('callActions').style.display = 'none';
+                    document.getElementById('callControls').style.display = 'flex';
+                }
+            });
+            
+            // ICE кандидаты
+            socket.on('ice-candidate', async (data) => {
+                if (peerConnection) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    } catch (e) { console.error('ICE ошибка:', e); }
+                }
+            });
+            
+            // Звонок завершён
+            socket.on('call-ended', () => {
+                endCall();
+            });
         }
         
         document.getElementById('messageInput').addEventListener('input', () => { if (socket && currentChat && currentChat.type === 'user') socket.emit('typing', { to: currentChat.id }); });
