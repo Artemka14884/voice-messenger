@@ -9,33 +9,24 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
-    transports: ['websocket', 'polling']
-});
+const io = socketIo(server);
 
 app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 
 // Создаём папки
-const folders = ['./public', './public/uploads', './public/uploads/files', './public/uploads/images', './public/voice', './public/avatars'];
-folders.forEach(f => { if (!fs.existsSync(f)) fs.mkdirSync(f, { recursive: true }); });
+if (!fs.existsSync('./public')) fs.mkdirSync('./public');
+if (!fs.existsSync('./public/uploads')) fs.mkdirSync('./public/uploads', { recursive: true });
+if (!fs.existsSync('./public/avatars')) fs.mkdirSync('./public/avatars', { recursive: true });
 
-// Настройка загрузки файлов
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const type = file.mimetype.startsWith('image/') ? 'images' : 'files';
-        cb(null, `./public/uploads/${type}`);
+        if (file.fieldname === 'avatar') cb(null, './public/avatars');
+        else cb(null, './public/uploads');
     },
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB лимит
-
-// Заглушка для аватарки
-if (!fs.existsSync('./public/avatars/default.png')) {
-    const defaultAvatar = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-    fs.writeFileSync('./public/avatars/default.png', Buffer.from(defaultAvatar, 'base64'));
-}
+const upload = multer({ storage });
 
 const db = new sqlite3.Database('messenger.db');
 
@@ -55,8 +46,7 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS groups (
         id TEXT PRIMARY KEY,
         name TEXT,
-        avatar TEXT DEFAULT '/avatars/group_default.png',
-        description TEXT,
+        avatar TEXT DEFAULT '/avatars/group.png',
         owner_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
@@ -65,8 +55,6 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS group_members (
         group_id TEXT,
         user_id TEXT,
-        role TEXT DEFAULT 'member',
-        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY(group_id, user_id)
     )`);
     
@@ -88,52 +76,37 @@ db.serialize(() => {
         PRIMARY KEY(channel_id, user_id)
     )`);
     
-    // Сообщения личные
+    // Сообщения
     db.run(`CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
         from_id TEXT,
         to_id TEXT,
         text TEXT,
         file TEXT,
-        file_type TEXT,
-        voice TEXT,
-        reply_to TEXT,
-        reactions TEXT,
-        read INTEGER DEFAULT 0,
+        type TEXT,
+        time TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Сообщения в группах
+    // Групповые сообщения
     db.run(`CREATE TABLE IF NOT EXISTS group_messages (
         id TEXT PRIMARY KEY,
         group_id TEXT,
         from_id TEXT,
         text TEXT,
         file TEXT,
-        file_type TEXT,
-        voice TEXT,
-        reply_to TEXT,
-        reactions TEXT,
+        time TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Сообщения в каналах
+    // Сообщения каналов
     db.run(`CREATE TABLE IF NOT EXISTS channel_messages (
         id TEXT PRIMARY KEY,
         channel_id TEXT,
         from_id TEXT,
         text TEXT,
-        file TEXT,
-        file_type TEXT,
+        time TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    
-    // Непрочитанные
-    db.run(`CREATE TABLE IF NOT EXISTS unread (
-        user_id TEXT,
-        from_id TEXT,
-        count INTEGER DEFAULT 0,
-        PRIMARY KEY(user_id, from_id)
     )`);
     
     // Заметки
@@ -147,29 +120,37 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
+    // Непрочитанные
+    db.run(`CREATE TABLE IF NOT EXISTS unread (
+        user_id TEXT,
+        from_id TEXT,
+        count INTEGER DEFAULT 0,
+        PRIMARY KEY(user_id, from_id)
+    )`);
+    
     // Коды приглашения
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         uses_left INTEGER DEFAULT 1
     )`);
     
-    // Создаём владельца
+    // Владелец
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hash = await bcrypt.hash('admin123', 10);
             db.run("INSERT INTO users (id, username, password, role) VALUES ('owner1', 'Artemka1488', ?, 'owner')", [hash]);
-            console.log('✅ Владелец: Artemka1488 / admin123');
+            console.log('✅ Artemka1488 / admin123');
         }
     });
     
     // Демо группа
     db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
         if (!group) {
-            db.run("INSERT INTO groups (id, name, description, owner_id) VALUES ('group1', 'Общий чат', 'Главная группа для общения', 'owner1')");
+            db.run("INSERT INTO groups (id, name, owner_id) VALUES ('group1', 'Общий чат', 'owner1')");
         }
     });
     
-    // Код дружбы
+    // Код
     db.get("SELECT * FROM invite_codes WHERE code = 'FRIEND2024'", (err, code) => {
         if (!code) db.run("INSERT INTO invite_codes (code, uses_left) VALUES ('FRIEND2024', 10000)");
     });
@@ -224,32 +205,21 @@ app.post('/api/upload-avatar', upload.single('avatar'), (req, res) => {
     res.json({ success: true, avatar: avatarUrl });
 });
 
-// Загрузка файла/фото
+// Загрузка файла
 app.post('/api/upload-file', upload.single('file'), (req, res) => {
-    const type = req.file.mimetype.startsWith('image/') ? 'image' : 'file';
-    const fileUrl = '/uploads/' + (type === 'image' ? 'images/' : 'files/') + req.file.filename;
-    res.json({ success: true, url: fileUrl, type: type, name: req.file.originalname, size: req.file.size });
+    const fileUrl = '/uploads/' + req.file.filename;
+    const isImage = req.file.mimetype.startsWith('image/');
+    res.json({ success: true, url: fileUrl, name: req.file.originalname, isImage });
 });
 
-// Друзья
-app.get('/api/friends/:userId', (req, res) => {
-    db.all(`SELECT u.id, u.username, u.online, u.avatar,
-            (SELECT count FROM unread WHERE user_id = ? AND from_id = u.id) as unread
-            FROM users u WHERE u.id != ?`, [req.params.userId, req.params.userId], (err, users) => {
-        res.json({ friends: users || [] });
+// Получить пользователей
+app.get('/api/users/:userId', (req, res) => {
+    db.all("SELECT id, username, online, avatar, role FROM users WHERE id != ?", [req.params.userId], (err, users) => {
+        res.json({ users: users || [] });
     });
 });
 
-app.post('/api/add-friend', (req, res) => {
-    const { userId, friendUsername } = req.body;
-    db.get("SELECT id, username FROM users WHERE username = ?", [friendUsername], (err, friend) => {
-        if (!friend) return res.json({ error: 'Пользователь не найден' });
-        if (userId === friend.id) return res.json({ error: 'Нельзя добавить себя' });
-        res.json({ success: true, friend: { id: friend.id, username: friend.username } });
-    });
-});
-
-// Группы
+// Получить группы пользователя
 app.get('/api/groups/:userId', (req, res) => {
     db.all(`SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members
             FROM groups g
@@ -259,14 +229,16 @@ app.get('/api/groups/:userId', (req, res) => {
     });
 });
 
+// Создать группу
 app.post('/api/create-group', (req, res) => {
-    const { name, description, userId } = req.body;
+    const { name, userId } = req.body;
     const groupId = generateId();
-    db.run("INSERT INTO groups (id, name, description, owner_id) VALUES (?, ?, ?, ?)", [groupId, name, description, userId]);
-    db.run("INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'admin')", [groupId, userId]);
+    db.run("INSERT INTO groups (id, name, owner_id) VALUES (?, ?, ?)", [groupId, name, userId]);
+    db.run("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", [groupId, userId]);
     res.json({ success: true, groupId });
 });
 
+// Добавить в группу
 app.post('/api/add-to-group', (req, res) => {
     const { groupId, username } = req.body;
     db.get("SELECT id FROM users WHERE username = ?", [username], (err, user) => {
@@ -276,6 +248,50 @@ app.post('/api/add-to-group', (req, res) => {
         } else {
             res.json({ error: 'Пользователь не найден' });
         }
+    });
+});
+
+// Получить каналы
+app.get('/api/channels', (req, res) => {
+    db.all(`SELECT c.*, u.username as owner_name 
+            FROM channels c 
+            JOIN users u ON u.id = c.owner_id 
+            ORDER BY c.verified DESC, c.subscribers DESC`, [], (err, channels) => {
+        res.json({ channels: channels || [] });
+    });
+});
+
+// Создать канал (только владелец)
+app.post('/api/create-channel', (req, res) => {
+    const { name, description, userId } = req.body;
+    db.get("SELECT role FROM users WHERE id = ?", [userId], (err, user) => {
+        if (user && user.role === 'owner') {
+            const channelId = generateId();
+            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, 1)", 
+                [channelId, name, description, userId]);
+            res.json({ success: true });
+        } else {
+            res.json({ error: 'Только владелец может создавать каналы' });
+        }
+    });
+});
+
+// Подписаться на канал
+app.post('/api/subscribe-channel', (req, res) => {
+    const { channelId, userId } = req.body;
+    db.run("INSERT OR IGNORE INTO channel_subs (channel_id, user_id) VALUES (?, ?)", [channelId, userId]);
+    db.run("UPDATE channels SET subscribers = (SELECT COUNT(*) FROM channel_subs WHERE channel_id = ?) WHERE id = ?", [channelId, channelId]);
+    res.json({ success: true });
+});
+
+// Личные сообщения
+app.get('/api/messages/:userId/:friendId', (req, res) => {
+    db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [req.params.userId, req.params.friendId]);
+    db.all(`SELECT * FROM messages 
+            WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
+            ORDER BY created_at ASC LIMIT 200`, 
+        [req.params.userId, req.params.friendId, req.params.friendId, req.params.userId], (err, messages) => {
+        res.json({ messages: messages || [] });
     });
 });
 
@@ -290,55 +306,13 @@ app.get('/api/group-messages/:groupId', (req, res) => {
     });
 });
 
-// Каналы
-app.get('/api/channels', (req, res) => {
-    db.all(`SELECT c.*, u.username as owner_name 
-            FROM channels c 
-            JOIN users u ON u.id = c.owner_id 
-            ORDER BY c.verified DESC, c.subscribers DESC`, [], (err, channels) => {
-        res.json({ channels: channels || [] });
-    });
-});
-
-app.post('/api/create-channel', (req, res) => {
-    const { name, description, userId } = req.body;
-    db.get("SELECT role FROM users WHERE id = ?", [userId], (err, user) => {
-        if (user && (user.role === 'owner' || user.role === 'admin')) {
-            const channelId = generateId();
-            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, ?)", 
-                [channelId, name, description, userId, user.role === 'owner' ? 1 : 0]);
-            res.json({ success: true });
-        } else {
-            res.json({ error: 'Нет прав' });
-        }
-    });
-});
-
-app.post('/api/subscribe-channel', (req, res) => {
-    const { channelId, userId } = req.body;
-    db.run("INSERT OR IGNORE INTO channel_subs (channel_id, user_id) VALUES (?, ?)", [channelId, userId]);
-    db.run("UPDATE channels SET subscribers = (SELECT COUNT(*) FROM channel_subs WHERE channel_id = ?) WHERE id = ?", [channelId, channelId]);
-    res.json({ success: true });
-});
-
-// Сообщения канала
+// Сообщения каналов
 app.get('/api/channel-messages/:channelId', (req, res) => {
     db.all(`SELECT cm.*, u.username, u.avatar 
             FROM channel_messages cm
             JOIN users u ON u.id = cm.from_id
             WHERE cm.channel_id = ?
             ORDER BY cm.created_at ASC LIMIT 200`, [req.params.channelId], (err, messages) => {
-        res.json({ messages: messages || [] });
-    });
-});
-
-// Личные сообщения
-app.get('/api/messages/:userId/:friendId', (req, res) => {
-    db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [req.params.userId, req.params.friendId]);
-    db.all(`SELECT * FROM messages 
-            WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
-            ORDER BY created_at ASC LIMIT 200`, 
-        [req.params.userId, req.params.friendId, req.params.friendId, req.params.userId], (err, messages) => {
         res.json({ messages: messages || [] });
     });
 });
@@ -369,44 +343,51 @@ app.post('/api/delete-note', (req, res) => {
     res.json({ success: true });
 });
 
-// Голосовое
-app.post('/api/voice', (req, res) => {
-    const { audio } = req.body;
-    const filename = `${Date.now()}.webm`;
-    const filepath = `/voice/${filename}`;
-    const buffer = Buffer.from(audio.split(',')[1], 'base64');
-    fs.writeFileSync(`./public${filepath}`, buffer);
-    res.json({ url: filepath });
-});
-
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
-    let currentUser = null;
+    let currentUserId = null;
     
     socket.on('login', (data) => {
-        currentUser = { id: data.userId, name: data.username, avatar: data.avatar };
+        currentUserId = data.userId;
         onlineUsers.set(data.userId, { socketId: socket.id, name: data.username, avatar: data.avatar });
-        io.emit('online-list', Array.from(onlineUsers.values()).map(u => ({ id: u.id, name: u.name, avatar: u.avatar })));
+        
+        const list = [];
+        for (let [id, user] of onlineUsers) {
+            list.push({ id, name: user.name, avatar: user.avatar });
+        }
+        io.emit('online-list', list);
     });
     
     // Личное сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
-        db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, reply_to) VALUES (?, ?, ?, ?, ?, ?, ?)", 
-            [messageId, currentUser.id, data.to, data.text || null, data.file || null, data.fileType || null, data.replyTo || null]);
+        
+        db.run("INSERT INTO messages (id, from_id, to_id, text, file, type, time) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, time]);
+        
+        // Обновляем непрочитанные
         db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
-                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUser.id]);
+                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUserId]);
         
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
-            io.to(toUser.socketId).emit('message', {
-                id: messageId, from: currentUser.id, fromName: currentUser.name, fromAvatar: currentUser.avatar,
-                text: data.text, file: data.file, fileType: data.fileType, replyTo: data.replyTo, time: time
+            io.to(toUser.socketId).emit('new-message', {
+                id: messageId,
+                from: currentUserId,
+                text: data.text,
+                file: data.file,
+                fileType: data.fileType,
+                time: time
+            });
+            
+            db.get("SELECT count FROM unread WHERE user_id = ? AND from_id = ?", [data.to, currentUserId], (err, cnt) => {
+                io.to(toUser.socketId).emit('unread-update', { fromId: currentUserId, count: cnt?.count || 1 });
             });
         }
+        
         socket.emit('message-sent', { id: messageId, text: data.text, file: data.file, time: time });
     });
     
@@ -414,16 +395,22 @@ io.on('connection', (socket) => {
     socket.on('group-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
-        db.run("INSERT INTO group_messages (id, group_id, from_id, text, file, file_type, reply_to) VALUES (?, ?, ?, ?, ?, ?, ?)", 
-            [messageId, data.groupId, currentUser.id, data.text || null, data.file || null, data.fileType || null, data.replyTo || null]);
+        
+        db.run("INSERT INTO group_messages (id, group_id, from_id, text, file, time) VALUES (?, ?, ?, ?, ?, ?)", 
+            [messageId, data.groupId, currentUserId, data.text || null, data.file || null, time]);
         
         db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
             members.forEach(member => {
                 const memberSocket = onlineUsers.get(member.user_id);
-                if (memberSocket) {
-                    io.to(memberSocket.socketId).emit('group-message', {
-                        id: messageId, groupId: data.groupId, from: currentUser.id, fromName: currentUser.name, fromAvatar: currentUser.avatar,
-                        text: data.text, file: data.file, fileType: data.fileType, replyTo: data.replyTo, time: time
+                if (memberSocket && member.user_id !== currentUserId) {
+                    io.to(memberSocket.socketId).emit('new-group-message', {
+                        id: messageId,
+                        groupId: data.groupId,
+                        from: currentUserId,
+                        text: data.text,
+                        file: data.file,
+                        fileType: data.fileType,
+                        time: time
                     });
                 }
             });
@@ -434,86 +421,43 @@ io.on('connection', (socket) => {
     socket.on('channel-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
-        db.run("INSERT INTO channel_messages (id, channel_id, from_id, text, file, file_type) VALUES (?, ?, ?, ?, ?, ?)", 
-            [messageId, data.channelId, currentUser.id, data.text || null, data.file || null, data.fileType || null]);
+        
+        db.run("INSERT INTO channel_messages (id, channel_id, from_id, text, time) VALUES (?, ?, ?, ?, ?)", 
+            [messageId, data.channelId, currentUserId, data.text, time]);
         
         db.all("SELECT user_id FROM channel_subs WHERE channel_id = ?", [data.channelId], (err, subs) => {
             subs.forEach(sub => {
                 const subSocket = onlineUsers.get(sub.user_id);
-                if (subSocket) {
-                    io.to(subSocket.socketId).emit('channel-message', {
-                        id: messageId, channelId: data.channelId, from: currentUser.id, fromName: currentUser.name,
-                        text: data.text, file: data.file, fileType: data.fileType, time: time
+                if (subSocket && sub.user_id !== currentUserId) {
+                    io.to(subSocket.socketId).emit('new-channel-message', {
+                        id: messageId,
+                        channelId: data.channelId,
+                        from: currentUserId,
+                        text: data.text,
+                        time: time
                     });
                 }
             });
         });
     });
     
-    // Голосовое
-    socket.on('voice-message', (data) => {
-        const messageId = generateId();
-        const time = new Date().toLocaleTimeString();
-        db.run("INSERT INTO messages (id, from_id, to_id, voice) VALUES (?, ?, ?, ?)", 
-            [messageId, currentUser.id, data.to, data.voiceUrl]);
-        db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
-                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUser.id]);
-        
-        const toUser = onlineUsers.get(data.to);
-        if (toUser) {
-            io.to(toUser.socketId).emit('voice-message', {
-                id: messageId, from: currentUser.id, fromName: currentUser.name,
-                voiceUrl: data.voiceUrl, time: time
-            });
-        }
-    });
-    
-    // Реакция
-    socket.on('add-reaction', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('reaction-added', {
-                messageId: data.messageId, reaction: data.reaction, fromId: currentUser.id
-            });
-        }
-    });
-    
-    // Звонки
-    socket.on('call-user', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('incoming-call', {
-                fromId: currentUser.id, fromName: currentUser.name, fromAvatar: currentUser.avatar,
-                offer: data.offer, type: data.type
-            });
-        }
-    });
-    
-    socket.on('answer-call', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) io.to(toUser.socketId).emit('call-answered', { answer: data.answer });
-    });
-    
-    socket.on('ice-candidate', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) io.to(toUser.socketId).emit('ice-candidate', { candidate: data.candidate });
-    });
-    
-    socket.on('end-call', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) io.to(toUser.socketId).emit('call-ended');
-    });
-    
+    // Печатает
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
-        if (toUser) io.to(toUser.socketId).emit('typing', { from: currentUser.name });
+        if (toUser) {
+            io.to(toUser.socketId).emit('typing', { from: data.name });
+        }
     });
     
     socket.on('disconnect', () => {
-        if (currentUser) {
-            onlineUsers.delete(currentUser.id);
-            db.run("UPDATE users SET online = 0 WHERE id = ?", [currentUser.id]);
-            io.emit('online-list', Array.from(onlineUsers.values()).map(u => ({ id: u.id, name: u.name, avatar: u.avatar })));
+        if (currentUserId) {
+            onlineUsers.delete(currentUserId);
+            db.run("UPDATE users SET online = 0 WHERE id = ?", [currentUserId]);
+            const list = [];
+            for (let [id, user] of onlineUsers) {
+                list.push({ id, name: user.name, avatar: user.avatar });
+            }
+            io.emit('online-list', list);
         }
     });
 });
