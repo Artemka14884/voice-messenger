@@ -19,7 +19,7 @@
         .error { color: red; margin-top: 10px; }
         
         .captcha-container { background: #f0f0f0; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center; }
-        .captcha-code { font-size: 28px; font-weight: bold; letter-spacing: 8px; background: #fff; padding: 10px; border-radius: 8px; font-family: monospace; user-select: none; }
+        .captcha-code { font-size: 28px; font-weight: bold; letter-spacing: 8px; background: #fff; padding: 10px; border-radius: 8px; font-family: monospace; }
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-size: 18px; }
         
         .app { display: flex; height: 100vh; }
@@ -51,7 +51,6 @@
         .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .message-text { word-wrap: break-word; }
         .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        .reply-preview { font-size: 11px; opacity: 0.7; margin-bottom: 5px; padding-left: 8px; border-left: 2px solid; }
         .message-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
         .reaction-badge { background: rgba(0,0,0,0.1); border-radius: 15px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
         .message-actions { display: none; gap: 10px; margin-top: 5px; }
@@ -115,9 +114,6 @@
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; }
         .invite-link { background: #0f3460; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; }
         .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
-        
-        .upload-progress { font-size: 12px; margin-left: 5px; color: #4CAF50; }
-        .loading { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body id="appBody">
@@ -139,8 +135,8 @@
                 <input type="text" id="inviteCode" placeholder="Код дружбы" value="FRIEND2024">
                 <div class="captcha-container">
                     <div class="captcha-code" id="captchaCode"></div>
-                    <input type="text" id="captchaInput" class="captcha-input" placeholder="Введите код с картинки" maxlength="6">
-                    <button type="button" class="captcha-refresh" onclick="generateCaptcha()" style="background:none;border:none;cursor:pointer;margin-top:5px">🔄 Обновить</button>
+                    <input type="text" id="captchaInput" class="captcha-input" placeholder="Введите код" maxlength="6">
+                    <button type="button" onclick="generateCaptcha()" style="background:none;border:none;cursor:pointer;margin-top:5px">🔄</button>
                 </div>
                 <button onclick="register()">Зарегистрироваться</button>
                 <div id="regError" class="error"></div>
@@ -152,7 +148,7 @@
         <div class="sidebar">
             <div class="user-header">
                 <img id="myAvatar" class="user-avatar" src="/avatars/default.png" onclick="document.getElementById('avatarInput').click()">
-                <div class="user-info"><div class="user-name" id="myName"></div><div id="myStatus">🟢 Онлайн</div></div>
+                <div class="user-info"><div class="user-name" id="myName"></div><div>🟢 Онлайн</div></div>
                 <button class="logout-btn" onclick="logout()">🚪</button>
             </div>
             <input type="file" id="avatarInput" style="display:none" accept="image/*" onchange="uploadAvatar(this)">
@@ -164,33 +160,16 @@
             
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="switchPanel('chats')">💬 Чаты</div>
-                <div class="nav-tab" onclick="switchPanel('groups')">👥 Группы</div>
-                <div class="nav-tab" onclick="switchPanel('channels')">📢 Каналы</div>
                 <div class="nav-tab" onclick="switchPanel('notes')">📝 Заметки</div>
             </div>
             
             <div id="chatsPanel" class="panel active">
-                <div class="invite-link">
-                    🔗 Код дружбы: <strong>FRIEND2024</strong><br>
-                    <button onclick="copyInvite()">📋 Копировать ссылку</button>
-                </div>
+                <div class="invite-link">🔗 Код: <strong>FRIEND2024</strong><br><button onclick="copyInvite()">📋 Копировать ссылку</button></div>
                 <div id="usersContainer"></div>
                 <div style="margin-top:10px; display:flex; gap:8px">
                     <input type="text" id="friendName" placeholder="Ник друга" style="flex:1; padding:8px; border-radius:10px; border:none">
                     <button onclick="addFriend()" style="background:#4CAF50; border:none; border-radius:10px; padding:8px 15px; color:white">➕</button>
                 </div>
-            </div>
-            
-            <div id="groupsPanel" class="panel">
-                <div id="groupsContainer"></div>
-                <div style="display:flex; gap:8px; margin-top:10px">
-                    <input type="text" id="newGroupName" placeholder="Название группы" style="flex:1; padding:8px; border-radius:10px; border:none">
-                    <button onclick="createGroup()" style="background:#4CAF50; border:none; border-radius:10px; padding:8px 15px; color:white">➕</button>
-                </div>
-            </div>
-            
-            <div id="channelsPanel" class="panel">
-                <div id="channelsContainer"></div>
             </div>
             
             <div id="notesPanel" class="panel">
@@ -231,7 +210,7 @@
         <button class="minimize" onclick="minimizeCall()">🗕</button>
         <div class="call-card">
             <div class="caller-name" id="callerName"></div>
-            <div class="call-status" id="callStatus">Звонит...</div>
+            <div class="call-status" id="callStatus"></div>
             <div id="videoContainer" class="video-container" style="display:none">
                 <div class="video-box"><video id="localVideo" autoplay muted playsinline></video><div class="video-label">Вы</div></div>
                 <div class="video-box"><video id="remoteVideo" autoplay playsinline></video><div class="video-label">Собеседник</div></div>
@@ -261,7 +240,7 @@
         let socket, currentUser, currentChat = null;
         let typingTimeout, replyToMessage = null;
         let peerConnection, localStream, currentCall = null;
-        let mediaRecorder, audioChunks = [], isRecording = false;
+        let voiceRecorder = null;
         let currentCaptcha = "";
         
         const config = {
@@ -276,13 +255,10 @@
         const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
         const emojis = ['😀','😂','😍','😎','😢','😡','👍','❤️','🔥','🎉','✨','💀','🥰','😘','😁','🤣','😊','🙏','💪','👋'];
         
-        // Капча
         function generateCaptcha() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
             let captcha = '';
-            for (let i = 0; i < 6; i++) {
-                captcha += chars[Math.floor(Math.random() * chars.length)];
-            }
+            for (let i = 0; i < 6; i++) captcha += chars[Math.floor(Math.random() * chars.length)];
             currentCaptcha = captcha;
             const el = document.getElementById('captchaCode');
             if (el) el.innerHTML = captcha;
@@ -312,10 +288,15 @@
         function switchPanel(panel) {
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            if (panel === 'chats') { document.querySelector('.nav-tab').classList.add('active'); document.getElementById('chatsPanel').classList.add('active'); loadUsers(); }
-            if (panel === 'groups') { document.querySelectorAll('.nav-tab')[1].classList.add('active'); document.getElementById('groupsPanel').classList.add('active'); loadGroups(); }
-            if (panel === 'channels') { document.querySelectorAll('.nav-tab')[2].classList.add('active'); document.getElementById('channelsPanel').classList.add('active'); loadChannels(); }
-            if (panel === 'notes') { document.querySelectorAll('.nav-tab')[3].classList.add('active'); document.getElementById('notesPanel').classList.add('active'); loadNotes(); }
+            if (panel === 'chats') {
+                document.querySelector('.nav-tab').classList.add('active');
+                document.getElementById('chatsPanel').classList.add('active');
+                loadUsers();
+            } else {
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
+                document.getElementById('notesPanel').classList.add('active');
+                loadNotes();
+            }
         }
         
         async function register() {
@@ -325,7 +306,7 @@
             const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
             
             if (!captchaInput || captchaInput !== currentCaptcha) {
-                document.getElementById('regError').innerText = 'Неверный код с картинки!';
+                document.getElementById('regError').innerText = 'Неверный код!';
                 generateCaptcha();
                 document.getElementById('captchaInput').value = '';
                 return;
@@ -350,7 +331,7 @@
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 connectSocket();
-                loadUsers(); loadGroups(); loadChannels(); loadNotes();
+                loadUsers(); loadNotes();
                 initEmojiPicker();
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) changeTheme(savedTheme);
@@ -358,11 +339,7 @@
         }
         
         function logout() { location.reload(); }
-        
-        function copyInvite() { 
-            navigator.clipboard.writeText(window.location.href); 
-            alert('Ссылка скопирована!\nКод дружбы: FRIEND2024'); 
-        }
+        function copyInvite() { navigator.clipboard.writeText(window.location.href); alert('Ссылка скопирована!'); }
         
         async function uploadAvatar(input) {
             const file = input.files[0];
@@ -389,7 +366,7 @@
             const data = await res.json();
             const container = document.getElementById('notesContainer');
             if (!data.notes || data.notes.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет заметок</div>';
-            else container.innerHTML = data.notes.map(n => `<div class="note-item"><div class="note-title">${escapeHtml(n.title)} ${n.pinned ? '📌' : ''}</div><div class="note-content">${escapeHtml(n.content)}</div><div style="margin-top:5px"><button onclick="pinNote('${n.id}', ${n.pinned ? 0 : 1})" style="background:none;border:none;cursor:pointer">📌</button><button onclick="deleteNote('${n.id}')" style="background:none;border:none;cursor:pointer">🗑️</button></div></div>`).join('');
+            else container.innerHTML = data.notes.map(n => `<div class="note-item"><div class="note-title">${escapeHtml(n.title)} ${n.pinned ? '📌' : ''}</div><div class="note-content">${escapeHtml(n.content)}</div><div><button onclick="pinNote('${n.id}', ${n.pinned ? 0 : 1})">📌</button> <button onclick="deleteNote('${n.id}')">🗑️</button></div></div>`).join('');
         }
         
         async function createNote() {
@@ -400,33 +377,7 @@
         }
         
         async function pinNote(noteId, pinned) { await fetch('/api/pin-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId, pinned }) }); loadNotes(); }
-        async function deleteNote(noteId) { if (confirm('Удалить заметку?')) { await fetch('/api/delete-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId }) }); loadNotes(); } }
-        
-        // Группы
-        async function loadGroups() {
-            const res = await fetch(`/api/groups/${currentUser.userId}`);
-            const data = await res.json();
-            const container = document.getElementById('groupsContainer');
-            if (!data.groups || data.groups.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет групп</div>';
-            else container.innerHTML = data.groups.map(g => `<div class="group-item" onclick="openChat('group', '${g.id}', '${g.name}')">👥 ${g.name} (${g.members} уч.)</div>`).join('');
-        }
-        
-        async function createGroup() {
-            const name = document.getElementById('newGroupName').value.trim();
-            if (!name) return;
-            const res = await fetch('/api/create-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, userId: currentUser.userId }) });
-            const data = await res.json();
-            if (data.success) { alert('Группа создана'); document.getElementById('newGroupName').value = ''; loadGroups(); }
-        }
-        
-        // Каналы
-        async function loadChannels() {
-            const res = await fetch('/api/channels');
-            const data = await res.json();
-            const container = document.getElementById('channelsContainer');
-            if (!data.channels || data.channels.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет каналов</div>';
-            else container.innerHTML = data.channels.map(c => `<div class="channel-item" onclick="openChat('channel', '${c.id}', '${c.name}')">📢 ${c.name} ${c.verified ? '✅' : ''}<div style="font-size:11px;opacity:0.7">${c.subscribers || 0} подписчиков</div></div>`).join('');
-        }
+        async function deleteNote(noteId) { if (confirm('Удалить?')) { await fetch('/api/delete-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId }) }); loadNotes(); } }
         
         // Пользователи
         async function loadUsers() {
@@ -434,13 +385,13 @@
             const data = await res.json();
             const container = document.getElementById('usersContainer');
             if (!data.users || data.users.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет пользователей</div>';
-            else container.innerHTML = data.users.map(u => `<div class="user-item"><div><span class="online-dot"></span>${u.username}</div><div><button class="call-btn" onclick="event.stopPropagation();openChat('user', '${u.id}', '${u.username}')">💬</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button></div></div>`).join('');
+            else container.innerHTML = data.users.map(u => `<div class="user-item"><div><span class="online-dot"></span>${u.username}</div><div><button class="call-btn" onclick="event.stopPropagation();openChat('${u.id}', '${u.username}')">💬</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button></div></div>`).join('');
         }
         
-        function openChat(type, id, name) {
-            currentChat = { type, id, name };
-            document.getElementById('chatWith').innerHTML = type === 'user' ? `💬 ${name}` : (type === 'group' ? `👥 ${name}` : `📢 ${name}`);
-            document.getElementById('callBtns').style.display = type === 'user' ? 'flex' : 'none';
+        function openChat(userId, username) {
+            currentChat = { type: 'user', id: userId, name: username };
+            document.getElementById('chatWith').innerHTML = `💬 ${username}`;
+            document.getElementById('callBtns').style.display = 'flex';
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesArea').innerHTML = '';
@@ -449,7 +400,7 @@
         }
         
         async function loadMessages() {
-            if (!currentChat || currentChat.type !== 'user') return;
+            if (!currentChat) return;
             const res = await fetch(`/api/messages/${currentUser.userId}/${currentChat.id}`);
             const data = await res.json();
             const container = document.getElementById('messagesArea');
@@ -466,7 +417,7 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (!text || !currentChat || currentChat.type !== 'user' || !socket) return;
+            if (!text || !currentChat || !socket) return;
             socket.emit('message', { to: currentChat.id, text, replyTo: replyToMessage });
             addMessageToChat(text, null, null, null, new Date().toLocaleTimeString(), true, null, replyToMessage, null);
             input.value = '';
@@ -480,14 +431,10 @@
             div.className = `message ${isOwn ? 'own' : 'other'}`;
             if (msgId) div.setAttribute('data-id', msgId);
             
-            let replyHtml = '';
-            if (replyTo) replyHtml = `<div class="reply-preview">↩️ Ответ: ${escapeHtml(replyTo.text || 'Сообщение')}</div>`;
-            
+            let replyHtml = replyTo ? `<div class="reply-preview">↩️ Ответ: ${escapeHtml(replyTo.text || 'Сообщение')}</div>` : '';
             let content = '';
             if (text) content = `<div class="message-text">${escapeHtml(text)}</div>`;
-            else if (voiceUrl) {
-                content = `<div class="voice-message" onclick="playVoice('${voiceUrl}')"><div class="voice-play">🔊</div><span>Голосовое сообщение</span></div>`;
-            }
+            else if (voiceUrl) content = `<div class="voice-message" onclick="playVoice('${voiceUrl}')"><div class="voice-play">🔊</div><span>Голосовое</span></div>`;
             else if (fileUrl && fileType === 'image') content = `<img src="${fileUrl}" class="message-image" onclick="openImage('${fileUrl}')">`;
             else if (fileUrl) content = `<div class="file-attachment" onclick="window.open('${fileUrl}')">📎 Файл</div>`;
             
@@ -495,10 +442,10 @@
             if (reactions && Object.keys(reactions).length > 0) {
                 const counts = {};
                 Object.values(reactions).forEach(r => { counts[r] = (counts[r] || 0) + 1; });
-                reactionsHtml = `<div class="message-reactions">${Object.entries(counts).map(([r, c]) => `<span class="reaction-badge" data-reaction="${r}" onclick="addReaction('${msgId}','${r}')">${r} ${c}</span>`).join('')}</div>`;
+                reactionsHtml = `<div class="message-reactions">${Object.entries(counts).map(([r, c]) => `<span class="reaction-badge" onclick="addReaction('${msgId}','${r}')">${r} ${c}</span>`).join('')}</div>`;
             }
             
-            div.innerHTML = `${replyHtml}${content}${reactionsHtml}<div class="message-actions"><button class="action-btn" onclick="replyToMessageFunc({id:'${msgId}', text:'${escapeHtml(text || 'Файл')}'})">↩️ Ответить</button><button class="action-btn" onclick="showReactionPicker('${msgId}', event)">😊 Реакция</button></div><div class="message-time">${time}</div>`;
+            div.innerHTML = `${replyHtml}${content}${reactionsHtml}<div class="message-actions"><button class="action-btn" onclick="replyToMessageFunc({id:'${msgId}', text:'${escapeHtml(text || 'Файл')}'})">↩️</button><button class="action-btn" onclick="showReactionPicker('${msgId}', event)">😊</button></div><div class="message-time">${time}</div>`;
             container.appendChild(div);
             scrollToBottom();
         }
@@ -506,10 +453,9 @@
         function replyToMessageFunc(msg) { replyToMessage = msg; document.getElementById('replyBar').classList.add('active'); document.getElementById('replyText').innerText = msg.text; document.getElementById('messageInput').focus(); }
         function cancelReply() { replyToMessage = null; document.getElementById('replyBar').classList.remove('active'); }
         
-        function addReaction(messageId, reaction) { 
-            if (currentChat && currentChat.type === 'user' && socket) {
+        function addReaction(messageId, reaction) {
+            if (currentChat && socket) {
                 socket.emit('add-reaction', { messageId, reaction, toUserId: currentChat.id, fromId: currentUser.userId });
-                // Локальное обновление
                 const msgDiv = document.querySelector(`.message[data-id="${messageId}"]`);
                 if (msgDiv) {
                     let reactionsDiv = msgDiv.querySelector('.message-reactions');
@@ -525,7 +471,6 @@
                     } else {
                         const badge = document.createElement('span');
                         badge.className = 'reaction-badge';
-                        badge.setAttribute('data-reaction', reaction);
                         badge.innerHTML = `${reaction} 1`;
                         badge.onclick = () => addReaction(messageId, reaction);
                         reactionsDiv.appendChild(badge);
@@ -556,21 +501,14 @@
         // Файлы
         async function uploadFile(input) {
             const file = input.files[0];
-            if (!file || !currentChat || currentChat.type !== 'user') return;
-            
+            if (!file || !currentChat) return;
             const btn = document.getElementById('fileBtn');
-            const originalText = btn.innerHTML;
             btn.innerHTML = '⏳';
-            btn.disabled = true;
-            
             const formData = new FormData();
             formData.append('file', file);
             const res = await fetch('/api/upload-file', { method: 'POST', body: formData });
+            btn.innerHTML = '📎';
             const data = await res.json();
-            
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
             if (data.success && socket) {
                 socket.emit('message', { to: currentChat.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
                 addMessageToChat(null, data.url, data.isImage ? 'image' : 'file', null, new Date().toLocaleTimeString(), true, null, null, null);
@@ -578,37 +516,28 @@
             input.value = '';
         }
         
-        // Голосовые сообщения
-        let voiceRecorder = null;
-        let voiceChunks = [];
-        
+        // Голосовые
         async function startVoiceRecording() {
             if (voiceRecorder && voiceRecorder.state === 'recording') {
-                stopVoiceRecording();
+                voiceRecorder.stop();
+                voiceRecorder = null;
                 return;
             }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 voiceRecorder = new MediaRecorder(stream);
-                voiceChunks = [];
-                voiceRecorder.ondataavailable = (e) => voiceChunks.push(e.data);
+                const chunks = [];
+                voiceRecorder.ondataavailable = (e) => chunks.push(e.data);
                 voiceRecorder.onstop = async () => {
-                    const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
                     const formData = new FormData();
                     formData.append('voice', blob, 'voice.webm');
-                    
                     const btn = document.getElementById('voiceRecordBtn');
                     btn.innerHTML = '⏳';
-                    btn.disabled = true;
-                    
                     const res = await fetch('/api/voice', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    
                     btn.innerHTML = '🎤';
-                    btn.disabled = false;
-                    btn.classList.remove('recording');
-                    
-                    if (data.success && currentChat && currentChat.type === 'user' && socket) {
+                    const data = await res.json();
+                    if (data.success && currentChat && socket) {
                         socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
                         addMessageToChat(null, null, null, data.url, new Date().toLocaleTimeString(), true, null, null, null);
                     }
@@ -618,33 +547,20 @@
                 const btn = document.getElementById('voiceRecordBtn');
                 btn.innerHTML = '🔴';
                 btn.classList.add('recording');
-                setTimeout(() => { if (voiceRecorder && voiceRecorder.state === 'recording') stopVoiceRecording(); }, 30000);
+                setTimeout(() => { if (voiceRecorder && voiceRecorder.state === 'recording') voiceRecorder.stop(); }, 30000);
             } catch(e) { alert('Нет микрофона'); }
         }
         
-        function stopVoiceRecording() {
-            if (voiceRecorder && voiceRecorder.state === 'recording') {
-                voiceRecorder.stop();
-                voiceRecorder = null;
-            }
-        }
-        
-        function playVoice(url) { 
-            const audio = document.getElementById('audioPlayer');
-            audio.src = url;
-            audio.play();
-        }
+        function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
         
         // Звонки
         function startCallTo(userId, userName, type) {
-            if (!currentChat || currentChat.id !== userId) {
-                currentChat = { type: 'user', id: userId, name: userName };
-            }
+            currentChat = { type: 'user', id: userId, name: userName };
             startCall(type);
         }
         
         async function startCall(type) {
-            if (!currentChat || currentChat.type !== 'user') { alert('Выберите пользователя'); return; }
+            if (!currentChat) { alert('Выберите пользователя'); return; }
             try {
                 if (type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -655,7 +571,7 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 socket.emit('call-user', { toUserId: currentChat.id, offer, type, fromName: currentUser.username });
-                currentCall = { type, toId: currentChat.id, fromId: currentChat.id };
+                currentCall = { type, toId: currentChat.id };
                 document.getElementById('callerName').innerHTML = currentChat.name;
                 document.getElementById('callStatus').innerHTML = 'Звоним...';
                 document.getElementById('callActions').style.display = 'flex';
@@ -710,13 +626,13 @@
             socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar });
             
             socket.on('new-message', (data) => {
-                if (currentChat && currentChat.type === 'user' && data.from === currentChat.id) {
+                if (currentChat && data.from === currentChat.id) {
                     addMessageToChat(data.text, data.file, data.fileType, data.voice, data.time, false, data.id, data.replyTo, null);
                 }
             });
             
             socket.on('reaction-added', (data) => {
-                if (currentChat && currentChat.type === 'user' && data.fromId === currentChat.id) {
+                if (currentChat && data.fromId === currentChat.id) {
                     const msgDiv = document.querySelector(`.message[data-id="${data.messageId}"]`);
                     if (msgDiv) {
                         let reactionsDiv = msgDiv.querySelector('.message-reactions');
@@ -732,7 +648,6 @@
                         } else {
                             const badge = document.createElement('span');
                             badge.className = 'reaction-badge';
-                            badge.setAttribute('data-reaction', data.reaction);
                             badge.innerHTML = `${data.reaction} 1`;
                             badge.onclick = () => addReaction(data.messageId, data.reaction);
                             reactionsDiv.appendChild(badge);
@@ -742,7 +657,7 @@
             });
             
             socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
-            socket.on('online-list', () => { loadUsers(); });
+            socket.on('online-list', () => loadUsers());
             
             socket.on('incoming-call', (data) => {
                 currentCall = { fromId: data.fromId, fromName: data.fromName, offer: data.offer, type: data.type };
@@ -759,7 +674,7 @@
             socket.on('call-ended', () => endCall());
         }
         
-        document.getElementById('messageInput').addEventListener('input', () => { if (socket && currentChat && currentChat.type === 'user') socket.emit('typing', { to: currentChat.id, name: currentUser.username }); });
+        document.getElementById('messageInput').addEventListener('input', () => { if (socket && currentChat) socket.emit('typing', { to: currentChat.id, name: currentUser.username }); });
         
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         
