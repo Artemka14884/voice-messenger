@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер - Капча + Звонки</title>
+    <title>Мессенджер</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
@@ -18,43 +18,9 @@
         .form.active { display: block; }
         .error { color: red; margin-top: 10px; }
         
-        /* Капча */
-        .captcha-container {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            text-align: center;
-        }
-        .captcha-code {
-            font-size: 28px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            text-decoration: line-through;
-            transform: rotate(-2deg);
-            user-select: none;
-        }
-        .captcha-input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 18px;
-        }
-        .captcha-refresh {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            margin-top: 5px;
-            color: #666;
-        }
+        .captcha-container { background: #f0f0f0; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center; }
+        .captcha-code { font-size: 28px; font-weight: bold; letter-spacing: 8px; background: #fff; padding: 10px; border-radius: 8px; font-family: monospace; user-select: none; }
+        .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-size: 18px; }
         
         .app { display: flex; height: 100vh; }
         @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
@@ -76,7 +42,6 @@
         .user-item:hover { background: #1a1a4e; }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
         .call-btn { padding: 5px 10px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 12px; margin: 0 2px; }
-        .verified { color: gold; margin-left: 5px; }
         
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
         .chat-header { background: white; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
@@ -150,15 +115,17 @@
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; }
         .invite-link { background: #0f3460; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; }
         .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
+        
+        .upload-progress { font-size: 12px; margin-left: 5px; color: #4CAF50; }
+        .loading { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body id="appBody">
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <h1>💬 Мессенджер</h1>
-            <div><div class="tab active" onclick="showAuthTab('login')">Вход</div><div class="tab" onclick="showAuthTab('register')">Регистрация</div><div class="tab" onclick="showAuthTab('forgot')">Забыли пароль?</div></div>
+            <div><div class="tab active" onclick="showAuthTab('login')">Вход</div><div class="tab" onclick="showAuthTab('register')">Регистрация</div></div>
             
-            <!-- Форма входа -->
             <div id="loginForm" class="form active">
                 <input type="text" id="loginUsername" placeholder="Никнейм">
                 <input type="password" id="loginPassword" placeholder="Пароль">
@@ -166,34 +133,17 @@
                 <div id="loginError" class="error"></div>
             </div>
             
-            <!-- Форма регистрации с капчей -->
             <div id="registerForm" class="form">
                 <input type="text" id="regUsername" placeholder="Никнейм (3+ символов)">
                 <input type="password" id="regPassword" placeholder="Пароль (4+ символов)">
-                <input type="text" id="inviteCode" placeholder="Код дружбы">
-                
-                <!-- КАПЧА -->
+                <input type="text" id="inviteCode" placeholder="Код дружбы" value="FRIEND2024">
                 <div class="captcha-container">
                     <div class="captcha-code" id="captchaCode"></div>
                     <input type="text" id="captchaInput" class="captcha-input" placeholder="Введите код с картинки" maxlength="6">
-                    <button type="button" class="captcha-refresh" onclick="generateCaptcha()">🔄 Обновить</button>
+                    <button type="button" class="captcha-refresh" onclick="generateCaptcha()" style="background:none;border:none;cursor:pointer;margin-top:5px">🔄 Обновить</button>
                 </div>
-                
                 <button onclick="register()">Зарегистрироваться</button>
                 <div id="regError" class="error"></div>
-            </div>
-            
-            <!-- Форма восстановления пароля -->
-            <div id="forgotForm" class="form">
-                <input type="text" id="forgotUsername" placeholder="Никнейм">
-                <input type="email" id="forgotEmail" placeholder="Email (привязанный к аккаунту)">
-                <button onclick="sendResetCode()">Отправить код восстановления</button>
-                <div id="forgotError" class="error"></div>
-                <div id="resetStep2" style="display:none; margin-top:15px">
-                    <input type="text" id="resetCode" placeholder="Код из email">
-                    <input type="password" id="resetNewPassword" placeholder="Новый пароль">
-                    <button onclick="resetPassword()">Сбросить пароль</button>
-                </div>
             </div>
         </div>
     </div>
@@ -241,11 +191,6 @@
             
             <div id="channelsPanel" class="panel">
                 <div id="channelsContainer"></div>
-                <div id="createChannelDiv" style="display:none; margin-top:10px">
-                    <input type="text" id="channelName" placeholder="Название канала" style="width:100%; padding:8px; border-radius:10px; border:none; margin-bottom:5px">
-                    <input type="text" id="channelDesc" placeholder="Описание" style="width:100%; padding:8px; border-radius:10px; border:none; margin-bottom:5px">
-                    <button onclick="createChannel()" style="background:#4CAF50; border:none; border-radius:10px; padding:8px; color:white">Создать</button>
-                </div>
             </div>
             
             <div id="notesPanel" class="panel">
@@ -272,7 +217,7 @@
                 <div class="input-main">
                     <button class="icon-btn" onclick="toggleEmojiPicker()">😊</button>
                     <div id="emojiPicker" class="emoji-picker"></div>
-                    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+                    <button class="icon-btn" id="fileBtn" onclick="document.getElementById('fileInput').click()">📎</button>
                     <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
                     <button class="icon-btn" id="voiceRecordBtn" onclick="toggleRecording()">🎤</button>
                     <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
@@ -331,7 +276,7 @@
         const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
         const emojis = ['😀','😂','😍','😎','😢','😡','👍','❤️','🔥','🎉','✨','💀','🥰','😘','😁','🤣','😊','🙏','💪','👋'];
         
-        // ========== ГЕНЕРАЦИЯ КАПЧИ ==========
+        // Капча
         function generateCaptcha() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
             let captcha = '';
@@ -339,15 +284,10 @@
                 captcha += chars[Math.floor(Math.random() * chars.length)];
             }
             currentCaptcha = captcha;
-            const captchaElement = document.getElementById('captchaCode');
-            if (captchaElement) {
-                captchaElement.innerHTML = captcha;
-                // Добавляем эффект искажения
-                captchaElement.style.transform = `rotate(${Math.random() * 4 - 2}deg)`;
-            }
+            const el = document.getElementById('captchaCode');
+            if (el) el.innerHTML = captcha;
         }
         
-        // ========== ТЕМЫ ==========
         function changeTheme(theme) {
             document.body.className = '';
             if (theme === 'dark') document.body.style.background = '#1a1a2e';
@@ -362,13 +302,10 @@
             if (tab === 'login') {
                 document.querySelector('.tab').classList.add('active');
                 document.getElementById('loginForm').classList.add('active');
-            } else if (tab === 'register') {
+            } else {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('registerForm').classList.add('active');
                 generateCaptcha();
-            } else {
-                document.querySelectorAll('.tab')[2].classList.add('active');
-                document.getElementById('forgotForm').classList.add('active');
             }
         }
         
@@ -387,7 +324,6 @@
             const inviteCode = document.getElementById('inviteCode').value.trim();
             const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
             
-            // Проверка капчи
             if (!captchaInput || captchaInput !== currentCaptcha) {
                 document.getElementById('regError').innerText = 'Неверный код с картинки!';
                 generateCaptcha();
@@ -413,7 +349,6 @@
                 if (data.avatar) document.getElementById('myAvatar').src = data.avatar + '?t=' + Date.now();
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
-                if (data.role === 'owner') document.getElementById('createChannelDiv').style.display = 'block';
                 connectSocket();
                 loadUsers(); loadGroups(); loadChannels(); loadNotes();
                 initEmojiPicker();
@@ -426,7 +361,7 @@
         
         function copyInvite() { 
             navigator.clipboard.writeText(window.location.href); 
-            alert('Ссылка скопирована! Отправь другу.\n\nКод дружбы: FRIEND2024'); 
+            alert('Ссылка скопирована!\nКод дружбы: FRIEND2024'); 
         }
         
         async function uploadAvatar(input) {
@@ -448,39 +383,12 @@
             document.getElementById('friendName').value = '';
         }
         
-        // Восстановление пароля
-        async function sendResetCode() {
-            const username = document.getElementById('forgotUsername').value.trim();
-            const email = document.getElementById('forgotEmail').value.trim();
-            if (!username || !email) {
-                document.getElementById('forgotError').innerText = 'Заполните все поля';
-                return;
-            }
-            const res = await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email }) });
-            const data = await res.json();
-            if (data.error) document.getElementById('forgotError').innerText = data.error;
-            else {
-                alert('Код восстановления отправлен на email!');
-                document.getElementById('resetStep2').style.display = 'block';
-            }
-        }
-        
-        async function resetPassword() {
-            const username = document.getElementById('forgotUsername').value.trim();
-            const code = document.getElementById('resetCode').value.trim();
-            const newPassword = document.getElementById('resetNewPassword').value;
-            const res = await fetch('/api/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, code, newPassword }) });
-            const data = await res.json();
-            if (data.error) document.getElementById('forgotError').innerText = data.error;
-            else { alert('Пароль изменён! Войдите.'); showAuthTab('login'); }
-        }
-        
-        // ========== ЗАМЕТКИ ==========
+        // Заметки
         async function loadNotes() {
             const res = await fetch(`/api/notes/${currentUser.userId}`);
             const data = await res.json();
             const container = document.getElementById('notesContainer');
-            if (data.notes.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет заметок</div>';
+            if (!data.notes || data.notes.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет заметок</div>';
             else container.innerHTML = data.notes.map(n => `<div class="note-item"><div class="note-title">${escapeHtml(n.title)} ${n.pinned ? '📌' : ''}</div><div class="note-content">${escapeHtml(n.content)}</div><div style="margin-top:5px"><button onclick="pinNote('${n.id}', ${n.pinned ? 0 : 1})" style="background:none;border:none;cursor:pointer">📌</button><button onclick="deleteNote('${n.id}')" style="background:none;border:none;cursor:pointer">🗑️</button></div></div>`).join('');
         }
         
@@ -494,12 +402,12 @@
         async function pinNote(noteId, pinned) { await fetch('/api/pin-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId, pinned }) }); loadNotes(); }
         async function deleteNote(noteId) { if (confirm('Удалить заметку?')) { await fetch('/api/delete-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId }) }); loadNotes(); } }
         
-        // ========== ГРУППЫ ==========
+        // Группы
         async function loadGroups() {
             const res = await fetch(`/api/groups/${currentUser.userId}`);
             const data = await res.json();
             const container = document.getElementById('groupsContainer');
-            if (data.groups.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет групп</div>';
+            if (!data.groups || data.groups.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет групп</div>';
             else container.innerHTML = data.groups.map(g => `<div class="group-item" onclick="openChat('group', '${g.id}', '${g.name}')">👥 ${g.name} (${g.members} уч.)</div>`).join('');
         }
         
@@ -511,31 +419,21 @@
             if (data.success) { alert('Группа создана'); document.getElementById('newGroupName').value = ''; loadGroups(); }
         }
         
-        // ========== КАНАЛЫ ==========
+        // Каналы
         async function loadChannels() {
             const res = await fetch('/api/channels');
             const data = await res.json();
             const container = document.getElementById('channelsContainer');
-            if (data.channels.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет каналов</div>';
-            else container.innerHTML = data.channels.map(c => `<div class="channel-item" onclick="openChat('channel', '${c.id}', '${c.name}')">📢 ${c.name} ${c.verified ? '<span class="verified">✅</span>' : ''}<div style="font-size:11px;opacity:0.7">${c.subscribers || 0} подписчиков</div></div>`).join('');
+            if (!data.channels || data.channels.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет каналов</div>';
+            else container.innerHTML = data.channels.map(c => `<div class="channel-item" onclick="openChat('channel', '${c.id}', '${c.name}')">📢 ${c.name} ${c.verified ? '✅' : ''}<div style="font-size:11px;opacity:0.7">${c.subscribers || 0} подписчиков</div></div>`).join('');
         }
         
-        async function createChannel() {
-            const name = document.getElementById('channelName').value.trim();
-            const desc = document.getElementById('channelDesc').value.trim();
-            if (!name) return;
-            const res = await fetch('/api/create-channel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description: desc, userId: currentUser.userId }) });
-            const data = await res.json();
-            if (data.error) alert(data.error);
-            else { alert('Канал создан'); document.getElementById('channelName').value = ''; document.getElementById('channelDesc').value = ''; loadChannels(); }
-        }
-        
-        // ========== ПОЛЬЗОВАТЕЛИ ==========
+        // Пользователи
         async function loadUsers() {
             const res = await fetch(`/api/users/${currentUser.userId}`);
             const data = await res.json();
             const container = document.getElementById('usersContainer');
-            if (data.users.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет пользователей</div>';
+            if (!data.users || data.users.length === 0) container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет пользователей</div>';
             else container.innerHTML = data.users.map(u => `<div class="user-item"><div><span class="online-dot"></span>${u.username}</div><div><button class="call-btn" onclick="event.stopPropagation();openChat('user', '${u.id}', '${u.username}')">💬</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button><button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button></div></div>`).join('');
         }
         
@@ -556,8 +454,12 @@
             const data = await res.json();
             const container = document.getElementById('messagesArea');
             container.innerHTML = '';
-            if (data.messages.length === 0) container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
-            else data.messages.forEach(msg => addMessageToChat(msg.text, msg.file, msg.file_type, msg.time, msg.from_id === currentUser.userId, msg.id, msg.reply_to, msg.reactions));
+            if (!data.messages || data.messages.length === 0) container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
+            else data.messages.forEach(msg => {
+                let reactions = {};
+                try { reactions = JSON.parse(msg.reactions); } catch(e) {}
+                addMessageToChat(msg.text, msg.file, msg.file_type, msg.time, msg.from_id === currentUser.userId, msg.id, msg.reply_to ? JSON.parse(msg.reply_to) : null, reactions);
+            });
             scrollToBottom();
         }
         
@@ -587,7 +489,7 @@
             else if (fileUrl) content = `<div class="file-attachment" onclick="window.open('${fileUrl}')">📎 Файл</div>`;
             
             let reactionsHtml = '';
-            if (reactions && typeof reactions === 'object') {
+            if (reactions && Object.keys(reactions).length > 0) {
                 const counts = {};
                 Object.values(reactions).forEach(r => { counts[r] = (counts[r] || 0) + 1; });
                 reactionsHtml = `<div class="message-reactions">${Object.entries(counts).map(([r, c]) => `<span class="reaction-badge" onclick="addReaction('${msgId}','${r}')">${r} ${c}</span>`).join('')}</div>`;
@@ -600,7 +502,34 @@
         
         function replyToMessageFunc(msg) { replyToMessage = msg; document.getElementById('replyBar').classList.add('active'); document.getElementById('replyText').innerText = msg.text; document.getElementById('messageInput').focus(); }
         function cancelReply() { replyToMessage = null; document.getElementById('replyBar').classList.remove('active'); }
-        function addReaction(messageId, reaction) { if (currentChat && currentChat.type === 'user') socket.emit('add-reaction', { messageId, reaction, toUserId: currentChat.id }); }
+        
+        function addReaction(messageId, reaction) { 
+            if (currentChat && currentChat.type === 'user') {
+                socket.emit('add-reaction', { messageId, reaction, toUserId: currentChat.id });
+                // Локальное обновление
+                const msgDiv = document.querySelector(`.message[data-id="${messageId}"]`);
+                if (msgDiv) {
+                    let reactionsDiv = msgDiv.querySelector('.message-reactions');
+                    if (!reactionsDiv) {
+                        reactionsDiv = document.createElement('div');
+                        reactionsDiv.className = 'message-reactions';
+                        msgDiv.appendChild(reactionsDiv);
+                    }
+                    const existing = reactionsDiv.querySelector(`.reaction-badge[data-reaction="${reaction}"]`);
+                    if (existing) {
+                        let count = parseInt(existing.innerText.split(' ')[1]) || 1;
+                        existing.innerText = `${reaction} ${count + 1}`;
+                    } else {
+                        const badge = document.createElement('span');
+                        badge.className = 'reaction-badge';
+                        badge.setAttribute('data-reaction', reaction);
+                        badge.innerHTML = `${reaction} 1`;
+                        badge.onclick = () => addReaction(messageId, reaction);
+                        reactionsDiv.appendChild(badge);
+                    }
+                }
+            }
+        }
         
         function showReactionPicker(messageId, event) {
             const existing = document.querySelector('.reaction-picker');
@@ -621,14 +550,24 @@
             setTimeout(() => picker.remove(), 3000);
         }
         
-        // ========== ФАЙЛЫ ==========
+        // Файлы
         async function uploadFile(input) {
             const file = input.files[0];
             if (!file || !currentChat || currentChat.type !== 'user') return;
+            
+            const btn = document.getElementById('fileBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳';
+            btn.disabled = true;
+            
             const formData = new FormData();
             formData.append('file', file);
             const res = await fetch('/api/upload-file', { method: 'POST', body: formData });
             const data = await res.json();
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
             if (data.success && socket) {
                 socket.emit('message', { to: currentChat.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
                 addMessageToChat(null, data.url, data.isImage ? 'image' : 'file', new Date().toLocaleTimeString(), true, null, null, null);
@@ -636,7 +575,7 @@
             input.value = '';
         }
         
-        // ========== ГОЛОСОВЫЕ ==========
+        // Голосовые
         async function toggleRecording() {
             if (isRecording) stopRecording();
             else startRecording();
@@ -678,9 +617,7 @@
             btn.classList.remove('recording');
         }
         
-        function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
-        
-        // ========== ЗВОНКИ ==========
+        // Звонки
         function startCallTo(userId, userName, type) {
             if (!currentChat || currentChat.id !== userId) {
                 currentChat = { type: 'user', id: userId, name: userName };
@@ -741,7 +678,7 @@
         function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
         function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
         
-        // ========== СМАЙЛИКИ ==========
+        // Смайлики
         function initEmojiPicker() { document.getElementById('emojiPicker').innerHTML = emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join(''); }
         function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('active'); }
         function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; toggleEmojiPicker(); document.getElementById('messageInput').focus(); }
@@ -759,6 +696,33 @@
                     addMessageToChat(data.text, data.file, data.fileType, data.time, false, data.id, data.replyTo, null);
                 }
             });
+            
+            socket.on('reaction-added', (data) => {
+                if (currentChat && currentChat.type === 'user' && data.fromId === currentChat.id) {
+                    const msgDiv = document.querySelector(`.message[data-id="${data.messageId}"]`);
+                    if (msgDiv) {
+                        let reactionsDiv = msgDiv.querySelector('.message-reactions');
+                        if (!reactionsDiv) {
+                            reactionsDiv = document.createElement('div');
+                            reactionsDiv.className = 'message-reactions';
+                            msgDiv.appendChild(reactionsDiv);
+                        }
+                        const existing = reactionsDiv.querySelector(`.reaction-badge[data-reaction="${data.reaction}"]`);
+                        if (existing) {
+                            let count = parseInt(existing.innerText.split(' ')[1]) || 1;
+                            existing.innerText = `${data.reaction} ${count + 1}`;
+                        } else {
+                            const badge = document.createElement('span');
+                            badge.className = 'reaction-badge';
+                            badge.setAttribute('data-reaction', data.reaction);
+                            badge.innerHTML = `${data.reaction} 1`;
+                            badge.onclick = () => addReaction(data.messageId, data.reaction);
+                            reactionsDiv.appendChild(badge);
+                        }
+                    }
+                }
+            });
+            
             socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
             socket.on('online-list', () => { loadUsers(); });
             
@@ -781,7 +745,6 @@
         
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         
-        // Генерируем капчу при загрузке страницы
         generateCaptcha();
     </script>
 </body>
