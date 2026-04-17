@@ -241,6 +241,8 @@
         let typingTimeout, replyToMessage = null;
         let peerConnection, localStream, currentCall = null;
         let voiceRecorder = null;
+        let voiceChunks = [];
+        let isVoiceRecording = false;
         let currentCaptcha = "";
         
         const config = {
@@ -360,7 +362,6 @@
             document.getElementById('friendName').value = '';
         }
         
-        // Заметки
         async function loadNotes() {
             const res = await fetch(`/api/notes/${currentUser.userId}`);
             const data = await res.json();
@@ -379,7 +380,6 @@
         async function pinNote(noteId, pinned) { await fetch('/api/pin-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId, pinned }) }); loadNotes(); }
         async function deleteNote(noteId) { if (confirm('Удалить?')) { await fetch('/api/delete-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId }) }); loadNotes(); } }
         
-        // Пользователи
         async function loadUsers() {
             const res = await fetch(`/api/users/${currentUser.userId}`);
             const data = await res.json();
@@ -498,7 +498,6 @@
             setTimeout(() => picker.remove(), 3000);
         }
         
-        // Файлы
         async function uploadFile(input) {
             const file = input.files[0];
             if (!file || !currentChat) return;
@@ -516,42 +515,98 @@
             input.value = '';
         }
         
-        // Голосовые
+        // ========== ГОЛОСОВЫЕ - ИСПРАВЛЕНА ВЕРСИЯ ==========
         async function startVoiceRecording() {
-            if (voiceRecorder && voiceRecorder.state === 'recording') {
-                voiceRecorder.stop();
-                voiceRecorder = null;
+            if (isVoiceRecording) {
+                stopVoiceRecording();
                 return;
             }
+            
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 voiceRecorder = new MediaRecorder(stream);
-                const chunks = [];
-                voiceRecorder.ondataavailable = (e) => chunks.push(e.data);
+                voiceChunks = [];
+                
+                voiceRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        voiceChunks.push(e.data);
+                    }
+                };
+                
                 voiceRecorder.onstop = async () => {
-                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    isVoiceRecording = false;
+                    const btn = document.getElementById('voiceRecordBtn');
+                    if (btn) {
+                        btn.innerHTML = '🎤';
+                        btn.classList.remove('recording');
+                    }
+                    
+                    if (voiceChunks.length === 0) return;
+                    
+                    const blob = new Blob(voiceChunks, { type: 'audio/webm' });
                     const formData = new FormData();
                     formData.append('voice', blob, 'voice.webm');
-                    const btn = document.getElementById('voiceRecordBtn');
-                    btn.innerHTML = '⏳';
-                    const res = await fetch('/api/voice', { method: 'POST', body: formData });
-                    btn.innerHTML = '🎤';
-                    const data = await res.json();
-                    if (data.success && currentChat && socket) {
-                        socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
-                        addMessageToChat(null, null, null, data.url, new Date().toLocaleTimeString(), true, null, null, null);
+                    
+                    if (btn) btn.innerHTML = '⏳';
+                    
+                    try {
+                        const res = await fetch('/api/voice', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (btn) btn.innerHTML = '🎤';
+                        
+                        if (data.success && currentChat && socket) {
+                            socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
+                            addMessageToChat(null, null, null, data.url, new Date().toLocaleTimeString(), true, null, null, null);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        if (btn) btn.innerHTML = '🎤';
+                        alert('Ошибка отправки');
                     }
+                    
                     stream.getTracks().forEach(t => t.stop());
+                    voiceRecorder = null;
+                    voiceChunks = [];
                 };
-                voiceRecorder.start();
+                
+                voiceRecorder.start(100);
+                isVoiceRecording = true;
+                
                 const btn = document.getElementById('voiceRecordBtn');
-                btn.innerHTML = '🔴';
-                btn.classList.add('recording');
-                setTimeout(() => { if (voiceRecorder && voiceRecorder.state === 'recording') voiceRecorder.stop(); }, 30000);
-            } catch(e) { alert('Нет микрофона'); }
+                if (btn) {
+                    btn.innerHTML = '🔴';
+                    btn.classList.add('recording');
+                }
+                
+                setTimeout(() => {
+                    if (isVoiceRecording) {
+                        stopVoiceRecording();
+                    }
+                }, 30000);
+                
+            } catch(e) {
+                console.error(e);
+                alert('Нет доступа к микрофону');
+                isVoiceRecording = false;
+                const btn = document.getElementById('voiceRecordBtn');
+                if (btn) {
+                    btn.innerHTML = '🎤';
+                    btn.classList.remove('recording');
+                }
+            }
         }
         
-        function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
+        function stopVoiceRecording() {
+            if (voiceRecorder && voiceRecorder.state === 'recording') {
+                voiceRecorder.stop();
+            }
+        }
+        
+        function playVoice(url) { 
+            document.getElementById('audioPlayer').src = url; 
+            document.getElementById('audioPlayer').play(); 
+        }
         
         // Звонки
         function startCallTo(userId, userName, type) {
@@ -612,7 +667,6 @@
         function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
         function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
         
-        // Смайлики
         function initEmojiPicker() { document.getElementById('emojiPicker').innerHTML = emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join(''); }
         function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('active'); }
         function addEmoji(emoji) { document.getElementById('messageInput').value += emoji; toggleEmojiPicker(); document.getElementById('messageInput').focus(); }
