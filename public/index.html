@@ -60,7 +60,7 @@
         
         .file-attachment { display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 10px; cursor: pointer; }
         .message-image { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; }
-        .voice-message { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .voice-message { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px; }
         .voice-play { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
         
         .typing { padding: 8px 15px; font-size: 12px; color: #666; font-style: italic; background: white; }
@@ -219,7 +219,7 @@
                     <div id="emojiPicker" class="emoji-picker"></div>
                     <button class="icon-btn" id="fileBtn" onclick="document.getElementById('fileInput').click()">📎</button>
                     <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
-                    <button class="icon-btn" id="voiceRecordBtn" onclick="toggleRecording()">🎤</button>
+                    <button class="icon-btn" id="voiceRecordBtn" onclick="startVoiceRecording()">🎤</button>
                     <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
                     <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
                 </div>
@@ -457,8 +457,8 @@
             if (!data.messages || data.messages.length === 0) container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
             else data.messages.forEach(msg => {
                 let reactions = {};
-                try { reactions = JSON.parse(msg.reactions); } catch(e) {}
-                addMessageToChat(msg.text, msg.file, msg.file_type, msg.time, msg.from_id === currentUser.userId, msg.id, msg.reply_to ? JSON.parse(msg.reply_to) : null, reactions);
+                try { reactions = JSON.parse(msg.reactions || '{}'); } catch(e) {}
+                addMessageToChat(msg.text, msg.file, msg.file_type, msg.voice, msg.time, msg.from_id === currentUser.userId, msg.id, msg.reply_to ? JSON.parse(msg.reply_to) : null, reactions);
             });
             scrollToBottom();
         }
@@ -468,12 +468,12 @@
             const text = input.value.trim();
             if (!text || !currentChat || currentChat.type !== 'user' || !socket) return;
             socket.emit('message', { to: currentChat.id, text, replyTo: replyToMessage });
-            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, null, replyToMessage, null);
+            addMessageToChat(text, null, null, null, new Date().toLocaleTimeString(), true, null, replyToMessage, null);
             input.value = '';
             cancelReply();
         }
         
-        function addMessageToChat(text, fileUrl, fileType, time, isOwn, msgId, replyTo, reactions) {
+        function addMessageToChat(text, fileUrl, fileType, voiceUrl, time, isOwn, msgId, replyTo, reactions) {
             const container = document.getElementById('messagesArea');
             if (container.querySelector('.no-chat')) container.innerHTML = '';
             const div = document.createElement('div');
@@ -485,6 +485,9 @@
             
             let content = '';
             if (text) content = `<div class="message-text">${escapeHtml(text)}</div>`;
+            else if (voiceUrl) {
+                content = `<div class="voice-message" onclick="playVoice('${voiceUrl}')"><div class="voice-play">🔊</div><span>Голосовое сообщение</span></div>`;
+            }
             else if (fileUrl && fileType === 'image') content = `<img src="${fileUrl}" class="message-image" onclick="openImage('${fileUrl}')">`;
             else if (fileUrl) content = `<div class="file-attachment" onclick="window.open('${fileUrl}')">📎 Файл</div>`;
             
@@ -492,7 +495,7 @@
             if (reactions && Object.keys(reactions).length > 0) {
                 const counts = {};
                 Object.values(reactions).forEach(r => { counts[r] = (counts[r] || 0) + 1; });
-                reactionsHtml = `<div class="message-reactions">${Object.entries(counts).map(([r, c]) => `<span class="reaction-badge" onclick="addReaction('${msgId}','${r}')">${r} ${c}</span>`).join('')}</div>`;
+                reactionsHtml = `<div class="message-reactions">${Object.entries(counts).map(([r, c]) => `<span class="reaction-badge" data-reaction="${r}" onclick="addReaction('${msgId}','${r}')">${r} ${c}</span>`).join('')}</div>`;
             }
             
             div.innerHTML = `${replyHtml}${content}${reactionsHtml}<div class="message-actions"><button class="action-btn" onclick="replyToMessageFunc({id:'${msgId}', text:'${escapeHtml(text || 'Файл')}'})">↩️ Ответить</button><button class="action-btn" onclick="showReactionPicker('${msgId}', event)">😊 Реакция</button></div><div class="message-time">${time}</div>`;
@@ -504,8 +507,8 @@
         function cancelReply() { replyToMessage = null; document.getElementById('replyBar').classList.remove('active'); }
         
         function addReaction(messageId, reaction) { 
-            if (currentChat && currentChat.type === 'user') {
-                socket.emit('add-reaction', { messageId, reaction, toUserId: currentChat.id });
+            if (currentChat && currentChat.type === 'user' && socket) {
+                socket.emit('add-reaction', { messageId, reaction, toUserId: currentChat.id, fromId: currentUser.userId });
                 // Локальное обновление
                 const msgDiv = document.querySelector(`.message[data-id="${messageId}"]`);
                 if (msgDiv) {
@@ -570,51 +573,66 @@
             
             if (data.success && socket) {
                 socket.emit('message', { to: currentChat.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
-                addMessageToChat(null, data.url, data.isImage ? 'image' : 'file', new Date().toLocaleTimeString(), true, null, null, null);
+                addMessageToChat(null, data.url, data.isImage ? 'image' : 'file', null, new Date().toLocaleTimeString(), true, null, null, null);
             }
             input.value = '';
         }
         
-        // Голосовые
-        async function toggleRecording() {
-            if (isRecording) stopRecording();
-            else startRecording();
-        }
+        // Голосовые сообщения
+        let voiceRecorder = null;
+        let voiceChunks = [];
         
-        async function startRecording() {
+        async function startVoiceRecording() {
+            if (voiceRecorder && voiceRecorder.state === 'recording') {
+                stopVoiceRecording();
+                return;
+            }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(blob);
-                    reader.onloadend = async () => {
-                        const res = await fetch('/api/voice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audio: reader.result }) });
-                        const data = await res.json();
-                        if (data.url && currentChat && currentChat.type === 'user') {
-                            socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
-                            addMessageToChat(null, null, null, new Date().toLocaleTimeString(), true, null, null, null);
-                        }
-                    };
+                voiceRecorder = new MediaRecorder(stream);
+                voiceChunks = [];
+                voiceRecorder.ondataavailable = (e) => voiceChunks.push(e.data);
+                voiceRecorder.onstop = async () => {
+                    const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('voice', blob, 'voice.webm');
+                    
+                    const btn = document.getElementById('voiceRecordBtn');
+                    btn.innerHTML = '⏳';
+                    btn.disabled = true;
+                    
+                    const res = await fetch('/api/voice', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    
+                    btn.innerHTML = '🎤';
+                    btn.disabled = false;
+                    btn.classList.remove('recording');
+                    
+                    if (data.success && currentChat && currentChat.type === 'user' && socket) {
+                        socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
+                        addMessageToChat(null, null, null, data.url, new Date().toLocaleTimeString(), true, null, null, null);
+                    }
                     stream.getTracks().forEach(t => t.stop());
                 };
-                mediaRecorder.start();
-                isRecording = true;
+                voiceRecorder.start();
                 const btn = document.getElementById('voiceRecordBtn');
-                btn.textContent = '🔴';
+                btn.innerHTML = '🔴';
                 btn.classList.add('recording');
-                setTimeout(() => { if (isRecording) stopRecording(); }, 30000);
+                setTimeout(() => { if (voiceRecorder && voiceRecorder.state === 'recording') stopVoiceRecording(); }, 30000);
             } catch(e) { alert('Нет микрофона'); }
         }
         
-        function stopRecording() {
-            if (mediaRecorder && isRecording) { mediaRecorder.stop(); isRecording = false; }
-            const btn = document.getElementById('voiceRecordBtn');
-            btn.textContent = '🎤';
-            btn.classList.remove('recording');
+        function stopVoiceRecording() {
+            if (voiceRecorder && voiceRecorder.state === 'recording') {
+                voiceRecorder.stop();
+                voiceRecorder = null;
+            }
+        }
+        
+        function playVoice(url) { 
+            const audio = document.getElementById('audioPlayer');
+            audio.src = url;
+            audio.play();
         }
         
         // Звонки
@@ -693,7 +711,7 @@
             
             socket.on('new-message', (data) => {
                 if (currentChat && currentChat.type === 'user' && data.from === currentChat.id) {
-                    addMessageToChat(data.text, data.file, data.fileType, data.time, false, data.id, data.replyTo, null);
+                    addMessageToChat(data.text, data.file, data.fileType, data.voice, data.time, false, data.id, data.replyTo, null);
                 }
             });
             
