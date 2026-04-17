@@ -11,10 +11,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Раздача статических файлов из папки public
 app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 
-// Папки
+// Создаём папки
 if (!fs.existsSync('./public')) fs.mkdirSync('./public');
 if (!fs.existsSync('./public/uploads')) fs.mkdirSync('./public/uploads', { recursive: true });
 if (!fs.existsSync('./public/avatars')) fs.mkdirSync('./public/avatars', { recursive: true });
@@ -23,6 +24,7 @@ if (!fs.existsSync('./public/voice')) fs.mkdirSync('./public/voice', { recursive
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         if (file.fieldname === 'avatar') cb(null, './public/avatars');
+        else if (file.fieldname === 'voice') cb(null, './public/voice');
         else cb(null, './public/uploads');
     },
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
@@ -32,6 +34,7 @@ const upload = multer({ storage });
 const db = new sqlite3.Database('messenger.db');
 
 db.serialize(() => {
+    // Пользователи
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE,
@@ -42,6 +45,46 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
+    // Сообщения
+    db.run(`CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY,
+        from_id TEXT,
+        to_id TEXT,
+        text TEXT,
+        file TEXT,
+        file_type TEXT,
+        voice TEXT,
+        reply_to TEXT,
+        reactions TEXT,
+        time TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // Заметки
+    db.run(`CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        title TEXT,
+        content TEXT,
+        pinned INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    // Непрочитанные
+    db.run(`CREATE TABLE IF NOT EXISTS unread (
+        user_id TEXT,
+        from_id TEXT,
+        count INTEGER DEFAULT 0,
+        PRIMARY KEY(user_id, from_id)
+    )`);
+    
+    // Коды приглашения
+    db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
+        code TEXT PRIMARY KEY,
+        uses_left INTEGER DEFAULT 1
+    )`);
+    
+    // Группы
     db.run(`CREATE TABLE IF NOT EXISTS groups (
         id TEXT PRIMARY KEY,
         name TEXT,
@@ -55,6 +98,7 @@ db.serialize(() => {
         PRIMARY KEY(group_id, user_id)
     )`);
     
+    // Каналы
     db.run(`CREATE TABLE IF NOT EXISTS channels (
         id TEXT PRIMARY KEY,
         name TEXT,
@@ -71,41 +115,6 @@ db.serialize(() => {
         PRIMARY KEY(channel_id, user_id)
     )`);
     
-    db.run(`CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY,
-        from_id TEXT,
-        to_id TEXT,
-        text TEXT,
-        file TEXT,
-        file_type TEXT,
-        voice TEXT,
-        reply_to TEXT,
-        reactions TEXT,
-        time TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS notes (
-        id TEXT PRIMARY KEY,
-        user_id TEXT,
-        title TEXT,
-        content TEXT,
-        pinned INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS unread (
-        user_id TEXT,
-        from_id TEXT,
-        count INTEGER DEFAULT 0,
-        PRIMARY KEY(user_id, from_id)
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
-        code TEXT PRIMARY KEY,
-        uses_left INTEGER DEFAULT 1
-    )`);
-    
     // Владелец
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
@@ -115,6 +124,14 @@ db.serialize(() => {
         }
     });
     
+    // Демо группа
+    db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
+        if (!group) {
+            db.run("INSERT INTO groups (id, name, owner_id) VALUES ('group1', 'Общий чат', 'owner1')");
+        }
+    });
+    
+    // Код
     db.get("SELECT * FROM invite_codes WHERE code = 'FRIEND2024'", (err, code) => {
         if (!code) db.run("INSERT INTO invite_codes (code, uses_left) VALUES ('FRIEND2024', 10000)");
     });
@@ -139,6 +156,7 @@ app.post('/api/register', async (req, res) => {
             const hash = await bcrypt.hash(password, 10);
             db.run("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", [userId, username, hash]);
             db.run("UPDATE invite_codes SET uses_left = uses_left - 1 WHERE code = ?", [inviteCode]);
+            db.run("INSERT OR IGNORE INTO group_members (group_id, user_id) VALUES ('group1', ?)", [userId]);
             res.json({ success: true, userId, username });
         });
     });
@@ -168,13 +186,9 @@ app.post('/api/upload-file', upload.single('file'), (req, res) => {
     res.json({ success: true, url: fileUrl, name: req.file.originalname, isImage });
 });
 
-app.post('/api/voice', (req, res) => {
-    const { audio } = req.body;
-    const filename = Date.now() + '.webm';
-    const filepath = '/voice/' + filename;
-    const buffer = Buffer.from(audio.split(',')[1], 'base64');
-    fs.writeFileSync('./public' + filepath, buffer);
-    res.json({ success: true, url: filepath });
+app.post('/api/voice', upload.single('voice'), (req, res) => {
+    const voiceUrl = '/voice/' + req.file.filename;
+    res.json({ success: true, url: voiceUrl });
 });
 
 app.get('/api/users/:userId', (req, res) => {
@@ -258,6 +272,14 @@ app.post('/api/delete-note', (req, res) => {
     res.json({ success: true });
 });
 
+app.post('/api/add-friend', (req, res) => {
+    const { userId, friendUsername } = req.body;
+    db.get("SELECT id FROM users WHERE username = ?", [friendUsername], (err, friend) => {
+        if (!friend) return res.json({ error: 'Пользователь не найден' });
+        res.json({ success: true });
+    });
+});
+
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
 
@@ -275,12 +297,13 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
+    // Сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
         
-        db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, reply_to, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, data.replyTo ? JSON.stringify(data.replyTo) : null, time]);
+        db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, reply_to, reactions, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, data.replyTo ? JSON.stringify(data.replyTo) : null, '{}', time]);
         
         db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
                 ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUserId]);
@@ -298,17 +321,34 @@ io.on('connection', (socket) => {
                 time: time
             });
         }
+        
+        socket.emit('message-sent', { id: messageId });
     });
     
+    // Реакция
     socket.on('add-reaction', (data) => {
-        const toUser = onlineUsers.get(data.toUserId);
-        if (toUser) {
-            io.to(toUser.socketId).emit('reaction-added', {
-                messageId: data.messageId, reaction: data.reaction, fromId: currentUserId
-            });
-        }
+        db.get("SELECT reactions FROM messages WHERE id = ?", [data.messageId], (err, msg) => {
+            let reactions = {};
+            try {
+                reactions = JSON.parse(msg.reactions || '{}');
+            } catch(e) {}
+            
+            reactions[data.fromId] = data.reaction;
+            const newReactions = JSON.stringify(reactions);
+            db.run("UPDATE messages SET reactions = ? WHERE id = ?", [newReactions, data.messageId]);
+            
+            const toUser = onlineUsers.get(data.toUserId);
+            if (toUser) {
+                io.to(toUser.socketId).emit('reaction-added', {
+                    messageId: data.messageId,
+                    reaction: data.reaction,
+                    fromId: data.fromId
+                });
+            }
+        });
     });
     
+    // Печатает
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
