@@ -90,23 +90,6 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Каналы
-    db.run(`CREATE TABLE IF NOT EXISTS channels (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        description TEXT,
-        owner_id TEXT,
-        verified INTEGER DEFAULT 0,
-        subscribers INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS channel_subs (
-        channel_id TEXT,
-        user_id TEXT,
-        PRIMARY KEY(channel_id, user_id)
-    )`);
-    
     // Заметки
     db.run(`CREATE TABLE IF NOT EXISTS notes (
         id TEXT PRIMARY KEY,
@@ -129,15 +112,6 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         uses_left INTEGER DEFAULT 1
-    )`);
-    
-    // Приглашения в игру
-    db.run(`CREATE TABLE IF NOT EXISTS game_invites (
-        id TEXT PRIMARY KEY,
-        from_id TEXT,
-        to_id TEXT,
-        status TEXT DEFAULT 'pending',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
     // Владелец
@@ -261,37 +235,23 @@ app.get('/api/group-messages/:groupId', (req, res) => {
     });
 });
 
-// Каналы
-app.get('/api/channels', (req, res) => {
-    db.all(`SELECT c.*, u.username as owner_name 
-            FROM channels c 
-            JOIN users u ON u.id = c.owner_id 
-            ORDER BY c.verified DESC, c.subscribers DESC`, [], (err, channels) => {
-        res.json({ channels: channels || [] });
-    });
-});
-
-app.post('/api/create-channel', (req, res) => {
-    const { name, description, userId } = req.body;
-    db.get("SELECT role FROM users WHERE id = ?", [userId], (err, user) => {
-        if (user && user.role === 'owner') {
-            const channelId = generateId();
-            db.run("INSERT INTO channels (id, name, description, owner_id, verified) VALUES (?, ?, ?, ?, 1)", 
-                [channelId, name, description, userId]);
-            res.json({ success: true });
-        } else {
-            res.json({ error: 'Только владелец' });
-        }
-    });
-});
-
-// Личные сообщения
+// Личные сообщения - ОСНОВНОЙ API
 app.get('/api/messages/:userId/:friendId', (req, res) => {
-    db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [req.params.userId, req.params.friendId]);
+    const userId = req.params.userId;
+    const friendId = req.params.friendId;
+    
+    // Сбрасываем счётчик непрочитанных
+    db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [userId, friendId]);
+    
+    // Получаем сообщения
     db.all(`SELECT * FROM messages 
             WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
             ORDER BY created_at ASC LIMIT 200`, 
-        [req.params.userId, req.params.friendId, req.params.friendId, req.params.userId], (err, messages) => {
+        [userId, friendId, friendId, userId], (err, messages) => {
+        if (err) {
+            console.error('Ошибка получения сообщений:', err);
+            return res.json({ messages: [] });
+        }
         res.json({ messages: messages || [] });
     });
 });
@@ -330,7 +290,6 @@ app.post('/api/add-friend', (req, res) => {
     });
 });
 
-// Обновление побед
 app.post('/api/update-wins', (req, res) => {
     const { userId, wins } = req.body;
     db.run("UPDATE users SET wins = ? WHERE id = ?", [wins, userId]);
@@ -339,7 +298,7 @@ app.post('/api/update-wins', (req, res) => {
 
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
-let gameRooms = new Map(); // roomId -> { players, ball, paddles, scores, interval }
+let gameRooms = new Map();
 
 io.on('connection', (socket) => {
     let currentUserId = null;
@@ -355,17 +314,24 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
-    // Личное сообщение
+    // ЛИЧНОЕ СООБЩЕНИЕ - СОХРАНЯЕМ В БД
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
         
-        db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, reply_to, reactions, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, data.replyTo ? JSON.stringify(data.replyTo) : null, '{}', time]);
+        // Сохраняем в базу данных
+        db.run(`INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, reply_to, reactions, time) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, data.replyTo ? JSON.stringify(data.replyTo) : null, '{}', time], 
+            (err) => {
+                if (err) console.error('Ошибка сохранения сообщения:', err);
+            });
         
+        // Обновляем счётчик непрочитанных
         db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
                 ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUserId]);
         
+        // Отправляем получателю, если он онлайн
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
             io.to(toUser.socketId).emit('new-message', {
@@ -379,14 +345,23 @@ io.on('connection', (socket) => {
                 time: time
             });
         }
+        
+        // Отправляем отправителю подтверждение
+        socket.emit('message-sent', {
+            id: messageId,
+            text: data.text,
+            file: data.file,
+            time: time
+        });
     });
     
-    // Групповое сообщение
+    // ГРУППОВОЕ СООБЩЕНИЕ
     socket.on('group-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
         
-        db.run("INSERT INTO group_messages (id, group_id, from_id, text, file, file_type, voice, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+        db.run(`INSERT INTO group_messages (id, group_id, from_id, text, file, file_type, voice, time) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
             [messageId, data.groupId, currentUserId, data.text || null, data.file || null, data.fileType || null, data.voice || null, time]);
         
         // Уведомляем всех участников группы
@@ -409,7 +384,7 @@ io.on('connection', (socket) => {
         });
     });
     
-    // Системное сообщение о входе в группу
+    // Уведомление о входе в группу
     socket.on('group-join-notify', (data) => {
         db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
             members.forEach(member => {
@@ -490,9 +465,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ========== ИГРА В ПИНГ-ПОНГ ==========
-    
-    // Приглашение в игру
+    // Игра
     socket.on('invite-game', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
@@ -520,12 +493,18 @@ io.on('connection', (socket) => {
         }
     });
     
+    socket.on('game-decline', (data) => {
+        const toUser = onlineUsers.get(data.toId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('game-declined');
+        }
+    });
+    
     socket.on('game-move', (data) => {
         const room = gameRooms.get(data.roomId);
         if (room) {
             room.paddles[data.playerId] = data.y;
             
-            // Обновляем позицию мяча
             const ball = room.ball;
             const paddleLeft = room.paddles[room.players[0]];
             const paddleRight = room.paddles[room.players[1]];
@@ -533,24 +512,20 @@ io.on('connection', (socket) => {
             ball.x += ball.vx;
             ball.y += ball.vy;
             
-            // Отскок от верха и низа
             if (ball.y <= 0 || ball.y >= 500) ball.vy = -ball.vy;
             
-            // Отскок от левой ракетки
             if (ball.x <= 20 && ball.x >= 15 && ball.y >= paddleLeft && ball.y <= paddleLeft + 100) {
                 ball.vx = -ball.vx;
                 ball.vx *= 1.05;
                 ball.vy *= 1.05;
             }
             
-            // Отскок от правой ракетки
             if (ball.x >= 780 && ball.x <= 785 && ball.y >= paddleRight && ball.y <= paddleRight + 100) {
                 ball.vx = -ball.vx;
                 ball.vx *= 1.05;
                 ball.vy *= 1.05;
             }
             
-            // Гол
             if (ball.x <= 0) {
                 room.scores[room.players[1]]++;
                 ball.x = 400; ball.y = 250;
@@ -564,7 +539,6 @@ io.on('connection', (socket) => {
                 ball.vy = 2 * (Math.random() > 0.5 ? 1 : -1);
             }
             
-            // Отправляем состояние игры
             const state = {
                 ball: { x: ball.x, y: ball.y },
                 paddles: room.paddles,
@@ -578,7 +552,6 @@ io.on('connection', (socket) => {
     socket.on('game-end', (data) => {
         const room = gameRooms.get(data.roomId);
         if (room) {
-            // Обновляем победный счёт
             const winner = room.scores[room.players[0]] > room.scores[room.players[1]] ? room.players[0] : room.players[1];
             db.get("SELECT wins FROM users WHERE id = ?", [winner], (err, user) => {
                 const newWins = (user.wins || 0) + 1;
