@@ -14,7 +14,7 @@ const io = socketIo(server);
 app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 
-// Создаём папки
+// Папки
 if (!fs.existsSync('./public')) fs.mkdirSync('./public');
 if (!fs.existsSync('./public/uploads')) fs.mkdirSync('./public/uploads', { recursive: true });
 if (!fs.existsSync('./public/avatars')) fs.mkdirSync('./public/avatars', { recursive: true });
@@ -39,8 +39,6 @@ db.serialize(() => {
         username TEXT UNIQUE,
         password TEXT,
         avatar TEXT DEFAULT '/avatars/default.png',
-        role TEXT DEFAULT 'user',
-        theme TEXT DEFAULT 'dark',
         wins INTEGER DEFAULT 0,
         online INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -53,10 +51,7 @@ db.serialize(() => {
         to_id TEXT,
         text TEXT,
         file TEXT,
-        file_type TEXT,
         voice TEXT,
-        reply_to TEXT,
-        reactions TEXT,
         time TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
@@ -65,27 +60,20 @@ db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS groups (
         id TEXT PRIMARY KEY,
         name TEXT,
-        avatar TEXT DEFAULT '/avatars/group.png',
-        owner_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
     db.run(`CREATE TABLE IF NOT EXISTS group_members (
         group_id TEXT,
         user_id TEXT,
-        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY(group_id, user_id)
     )`);
     
-    // Групповые сообщения
     db.run(`CREATE TABLE IF NOT EXISTS group_messages (
         id TEXT PRIMARY KEY,
         group_id TEXT,
         from_id TEXT,
         text TEXT,
-        file TEXT,
-        file_type TEXT,
-        voice TEXT,
         time TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
@@ -96,19 +84,9 @@ db.serialize(() => {
         user_id TEXT,
         title TEXT,
         content TEXT,
-        pinned INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Непрочитанные
-    db.run(`CREATE TABLE IF NOT EXISTS unread (
-        user_id TEXT,
-        from_id TEXT,
-        count INTEGER DEFAULT 0,
-        PRIMARY KEY(user_id, from_id)
-    )`);
-    
-    // Коды приглашения
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         uses_left INTEGER DEFAULT 1
@@ -118,7 +96,7 @@ db.serialize(() => {
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hash = await bcrypt.hash('admin123', 10);
-            db.run("INSERT INTO users (id, username, password, role) VALUES ('owner1', 'Artemka1488', ?, 'owner')", [hash]);
+            db.run("INSERT INTO users (id, username, password) VALUES ('owner1', 'Artemka1488', ?)", [hash]);
             console.log('✅ Artemka1488 / admin123');
         }
     });
@@ -126,7 +104,7 @@ db.serialize(() => {
     // Демо группа
     db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
         if (!group) {
-            db.run("INSERT INTO groups (id, name, owner_id) VALUES ('group1', 'Общий чат', 'owner1')");
+            db.run("INSERT INTO groups (id, name) VALUES ('group1', 'Общий чат')");
         }
     });
     
@@ -167,14 +145,8 @@ app.post('/api/login', (req, res) => {
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return res.json({ error: 'Неверный пароль' });
         db.run("UPDATE users SET online = 1 WHERE id = ?", [user.id]);
-        res.json({ success: true, userId: user.id, username: user.username, role: user.role, avatar: user.avatar, theme: user.theme || 'dark', wins: user.wins || 0 });
+        res.json({ success: true, userId: user.id, username: user.username, avatar: user.avatar, wins: user.wins || 0 });
     });
-});
-
-app.post('/api/update-theme', (req, res) => {
-    const { userId, theme } = req.body;
-    db.run("UPDATE users SET theme = ? WHERE id = ?", [theme, userId]);
-    res.json({ success: true });
 });
 
 app.post('/api/upload-avatar', upload.single('avatar'), (req, res) => {
@@ -196,8 +168,17 @@ app.post('/api/voice', upload.single('voice'), (req, res) => {
 });
 
 app.get('/api/users/:userId', (req, res) => {
-    db.all("SELECT id, username, online, avatar, role, wins FROM users WHERE id != ?", [req.params.userId], (err, users) => {
+    db.all("SELECT id, username, online, avatar, wins FROM users WHERE id != ?", [req.params.userId], (err, users) => {
         res.json({ users: users || [] });
+    });
+});
+
+app.get('/api/messages/:userId/:friendId', (req, res) => {
+    db.all(`SELECT * FROM messages 
+            WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
+            ORDER BY created_at ASC LIMIT 200`, 
+        [req.params.userId, req.params.friendId, req.params.friendId, req.params.userId], (err, messages) => {
+        res.json({ messages: messages || [] });
     });
 });
 
@@ -214,7 +195,7 @@ app.get('/api/groups/:userId', (req, res) => {
 app.post('/api/create-group', (req, res) => {
     const { name, userId } = req.body;
     const groupId = generateId();
-    db.run("INSERT INTO groups (id, name, owner_id) VALUES (?, ?, ?)", [groupId, name, userId]);
+    db.run("INSERT INTO groups (id, name) VALUES (?, ?)", [groupId, name]);
     db.run("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", [groupId, userId]);
     res.json({ success: true, groupId });
 });
@@ -235,30 +216,9 @@ app.get('/api/group-messages/:groupId', (req, res) => {
     });
 });
 
-// Личные сообщения - ОСНОВНОЙ API
-app.get('/api/messages/:userId/:friendId', (req, res) => {
-    const userId = req.params.userId;
-    const friendId = req.params.friendId;
-    
-    // Сбрасываем счётчик непрочитанных
-    db.run("DELETE FROM unread WHERE user_id = ? AND from_id = ?", [userId, friendId]);
-    
-    // Получаем сообщения
-    db.all(`SELECT * FROM messages 
-            WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
-            ORDER BY created_at ASC LIMIT 200`, 
-        [userId, friendId, friendId, userId], (err, messages) => {
-        if (err) {
-            console.error('Ошибка получения сообщений:', err);
-            return res.json({ messages: [] });
-        }
-        res.json({ messages: messages || [] });
-    });
-});
-
 // Заметки
 app.get('/api/notes/:userId', (req, res) => {
-    db.all("SELECT * FROM notes WHERE user_id = ? ORDER BY pinned DESC, created_at DESC", [req.params.userId], (err, notes) => {
+    db.all("SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC", [req.params.userId], (err, notes) => {
         res.json({ notes: notes || [] });
     });
 });
@@ -270,15 +230,15 @@ app.post('/api/create-note', (req, res) => {
     res.json({ success: true });
 });
 
-app.post('/api/pin-note', (req, res) => {
-    const { noteId, pinned } = req.body;
-    db.run("UPDATE notes SET pinned = ? WHERE id = ?", [pinned ? 1 : 0, noteId]);
-    res.json({ success: true });
-});
-
 app.post('/api/delete-note', (req, res) => {
     const { noteId } = req.body;
     db.run("DELETE FROM notes WHERE id = ?", [noteId]);
+    res.json({ success: true });
+});
+
+app.post('/api/update-wins', (req, res) => {
+    const { userId, wins } = req.body;
+    db.run("UPDATE users SET wins = ? WHERE id = ?", [wins, userId]);
     res.json({ success: true });
 });
 
@@ -288,12 +248,6 @@ app.post('/api/add-friend', (req, res) => {
         if (!friend) return res.json({ error: 'Пользователь не найден' });
         res.json({ success: true });
     });
-});
-
-app.post('/api/update-wins', (req, res) => {
-    const { userId, wins } = req.body;
-    db.run("UPDATE users SET wins = ? WHERE id = ?", [wins, userId]);
-    res.json({ success: true });
 });
 
 // ========== WEBSOCKET ==========
@@ -314,24 +268,14 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
-    // ЛИЧНОЕ СООБЩЕНИЕ - СОХРАНЯЕМ В БД
+    // Личное сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
         
-        // Сохраняем в базу данных
-        db.run(`INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, reply_to, reactions, time) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
-            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, data.replyTo ? JSON.stringify(data.replyTo) : null, '{}', time], 
-            (err) => {
-                if (err) console.error('Ошибка сохранения сообщения:', err);
-            });
+        db.run("INSERT INTO messages (id, from_id, to_id, text, file, voice, time) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.voice || null, time]);
         
-        // Обновляем счётчик непрочитанных
-        db.run(`INSERT INTO unread (user_id, from_id, count) VALUES (?, ?, 1)
-                ON CONFLICT(user_id, from_id) DO UPDATE SET count = count + 1`, [data.to, currentUserId]);
-        
-        // Отправляем получателю, если он онлайн
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
             io.to(toUser.socketId).emit('new-message', {
@@ -339,32 +283,20 @@ io.on('connection', (socket) => {
                 from: currentUserId,
                 text: data.text,
                 file: data.file,
-                fileType: data.fileType,
                 voice: data.voice,
-                replyTo: data.replyTo,
                 time: time
             });
         }
-        
-        // Отправляем отправителю подтверждение
-        socket.emit('message-sent', {
-            id: messageId,
-            text: data.text,
-            file: data.file,
-            time: time
-        });
     });
     
-    // ГРУППОВОЕ СООБЩЕНИЕ
+    // Групповое сообщение
     socket.on('group-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
         
-        db.run(`INSERT INTO group_messages (id, group_id, from_id, text, file, file_type, voice, time) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-            [messageId, data.groupId, currentUserId, data.text || null, data.file || null, data.fileType || null, data.voice || null, time]);
+        db.run("INSERT INTO group_messages (id, group_id, from_id, text, time) VALUES (?, ?, ?, ?, ?)", 
+            [messageId, data.groupId, currentUserId, data.text, time]);
         
-        // Уведомляем всех участников группы
         db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
             members.forEach(member => {
                 const memberSocket = onlineUsers.get(member.user_id);
@@ -375,8 +307,6 @@ io.on('connection', (socket) => {
                         from: currentUserId,
                         fromName: data.fromName,
                         text: data.text,
-                        file: data.file,
-                        fileType: data.fileType,
                         time: time
                     });
                 }
@@ -390,36 +320,12 @@ io.on('connection', (socket) => {
             members.forEach(member => {
                 const memberSocket = onlineUsers.get(member.user_id);
                 if (memberSocket && member.user_id !== currentUserId) {
-                    io.to(memberSocket.socketId).emit('group-system-message', {
+                    io.to(memberSocket.socketId).emit('system-message', {
                         groupId: data.groupId,
-                        text: `👤 ${data.userName} зашел в группу`,
-                        time: new Date().toLocaleTimeString()
+                        text: `👤 ${data.userName} присоединился к группе`
                     });
                 }
             });
-        });
-    });
-    
-    // Реакция
-    socket.on('add-reaction', (data) => {
-        db.get("SELECT reactions FROM messages WHERE id = ?", [data.messageId], (err, msg) => {
-            let reactions = {};
-            try {
-                reactions = JSON.parse(msg.reactions || '{}');
-            } catch(e) {}
-            
-            reactions[data.fromId] = data.reaction;
-            const newReactions = JSON.stringify(reactions);
-            db.run("UPDATE messages SET reactions = ? WHERE id = ?", [newReactions, data.messageId]);
-            
-            const toUser = onlineUsers.get(data.toUserId);
-            if (toUser) {
-                io.to(toUser.socketId).emit('reaction-added', {
-                    messageId: data.messageId,
-                    reaction: data.reaction,
-                    fromId: data.fromId
-                });
-            }
         });
     });
     
@@ -465,15 +371,16 @@ io.on('connection', (socket) => {
         }
     });
     
-    // Игра
+    // ИГРА
     socket.on('invite-game', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
             io.to(toUser.socketId).emit('game-invite', {
                 fromId: currentUserId,
-                fromName: data.fromName,
-                inviteId: data.inviteId
+                fromName: data.fromName
             });
+        } else {
+            socket.emit('game-error', { message: 'Пользователь не в сети' });
         }
     });
     
@@ -488,8 +395,8 @@ io.on('connection', (socket) => {
                 paddles: { [data.fromId]: 200, [currentUserId]: 200 }
             });
             
-            io.to(fromUser.socketId).emit('game-start', { roomId, opponent: currentUserId, opponentName: data.toName });
-            io.to(toUser.socketId).emit('game-start', { roomId, opponent: data.fromId, opponentName: data.fromName });
+            io.to(fromUser.socketId).emit('game-start', { roomId, opponent: currentUserId });
+            io.to(toUser.socketId).emit('game-start', { roomId, opponent: data.fromId });
         }
     });
     
@@ -516,27 +423,22 @@ io.on('connection', (socket) => {
             
             if (ball.x <= 20 && ball.x >= 15 && ball.y >= paddleLeft && ball.y <= paddleLeft + 100) {
                 ball.vx = -ball.vx;
-                ball.vx *= 1.05;
-                ball.vy *= 1.05;
             }
-            
             if (ball.x >= 780 && ball.x <= 785 && ball.y >= paddleRight && ball.y <= paddleRight + 100) {
                 ball.vx = -ball.vx;
-                ball.vx *= 1.05;
-                ball.vy *= 1.05;
             }
             
             if (ball.x <= 0) {
                 room.scores[room.players[1]]++;
                 ball.x = 400; ball.y = 250;
-                ball.vx = 3 * (Math.random() > 0.5 ? 1 : -1);
-                ball.vy = 2 * (Math.random() > 0.5 ? 1 : -1);
+                ball.vx = 3;
+                ball.vy = 2;
             }
             if (ball.x >= 800) {
                 room.scores[room.players[0]]++;
                 ball.x = 400; ball.y = 250;
-                ball.vx = 3 * (Math.random() > 0.5 ? 1 : -1);
-                ball.vy = 2 * (Math.random() > 0.5 ? 1 : -1);
+                ball.vx = -3;
+                ball.vy = 2;
             }
             
             const state = {
