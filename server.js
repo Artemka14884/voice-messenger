@@ -14,7 +14,7 @@ const io = socketIo(server);
 app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 
-// Создаём папки
+// Папки
 if (!fs.existsSync('./public')) fs.mkdirSync('./public');
 if (!fs.existsSync('./public/uploads')) fs.mkdirSync('./public/uploads', { recursive: true });
 if (!fs.existsSync('./public/avatars')) fs.mkdirSync('./public/avatars', { recursive: true });
@@ -33,7 +33,6 @@ const upload = multer({ storage });
 const db = new sqlite3.Database('messenger.db');
 
 db.serialize(() => {
-    // Пользователи
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE,
@@ -43,7 +42,6 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Сообщения
     db.run(`CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
         from_id TEXT,
@@ -55,7 +53,27 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
-    // Коды приглашения
+    db.run(`CREATE TABLE IF NOT EXISTS groups (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
+    db.run(`CREATE TABLE IF NOT EXISTS group_members (
+        group_id TEXT,
+        user_id TEXT,
+        PRIMARY KEY(group_id, user_id)
+    )`);
+    
+    db.run(`CREATE TABLE IF NOT EXISTS group_messages (
+        id TEXT PRIMARY KEY,
+        group_id TEXT,
+        from_id TEXT,
+        text TEXT,
+        time TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         uses_left INTEGER DEFAULT 1
@@ -70,7 +88,13 @@ db.serialize(() => {
         }
     });
     
-    // Код дружбы
+    // Демо группа
+    db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
+        if (!group) {
+            db.run("INSERT INTO groups (id, name) VALUES ('group1', 'Общий чат')");
+        }
+    });
+    
     db.get("SELECT * FROM invite_codes WHERE code = 'FRIEND2024'", (err, code) => {
         if (!code) db.run("INSERT INTO invite_codes (code, uses_left) VALUES ('FRIEND2024', 10000)");
     });
@@ -78,8 +102,7 @@ db.serialize(() => {
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
-// ========== API ==========
-
+// API
 app.post('/api/register', async (req, res) => {
     const { username, password, inviteCode } = req.body;
     if (!username || username.length < 3) return res.json({ error: 'Ник от 3 символов' });
@@ -95,6 +118,7 @@ app.post('/api/register', async (req, res) => {
             const hash = await bcrypt.hash(password, 10);
             db.run("INSERT INTO users (id, username, password) VALUES (?, ?, ?)", [userId, username, hash]);
             db.run("UPDATE invite_codes SET uses_left = uses_left - 1 WHERE code = ?", [inviteCode]);
+            db.run("INSERT OR IGNORE INTO group_members (group_id, user_id) VALUES ('group1', ?)", [userId]);
             res.json({ success: true, userId, username });
         });
     });
@@ -144,8 +168,43 @@ app.get('/api/messages/:userId/:friendId', (req, res) => {
     });
 });
 
+// Группы
+app.get('/api/groups/:userId', (req, res) => {
+    db.all(`SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members
+            FROM groups g
+            JOIN group_members gm ON gm.group_id = g.id
+            WHERE gm.user_id = ?`, [req.params.userId], (err, groups) => {
+        res.json({ groups: groups || [] });
+    });
+});
+
+app.post('/api/create-group', (req, res) => {
+    const { name, userId } = req.body;
+    const groupId = generateId();
+    db.run("INSERT INTO groups (id, name) VALUES (?, ?)", [groupId, name]);
+    db.run("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", [groupId, userId]);
+    res.json({ success: true, groupId });
+});
+
+app.post('/api/join-group', (req, res) => {
+    const { groupId, userId } = req.body;
+    db.run("INSERT OR IGNORE INTO group_members (group_id, user_id) VALUES (?, ?)", [groupId, userId]);
+    res.json({ success: true });
+});
+
+app.get('/api/group-messages/:groupId', (req, res) => {
+    db.all(`SELECT gm.*, u.username, u.avatar 
+            FROM group_messages gm
+            JOIN users u ON u.id = gm.from_id
+            WHERE gm.group_id = ?
+            ORDER BY gm.created_at ASC LIMIT 200`, [req.params.groupId], (err, messages) => {
+        res.json({ messages: messages || [] });
+    });
+});
+
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
+let gameRooms = new Map();
 
 io.on('connection', (socket) => {
     let currentUserId = null;
@@ -161,7 +220,7 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
-    // Сообщение
+    // Личное сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
@@ -180,8 +239,46 @@ io.on('connection', (socket) => {
                 time: time
             });
         }
+    });
+    
+    // Групповое сообщение
+    socket.on('group-message', (data) => {
+        const messageId = generateId();
+        const time = new Date().toLocaleTimeString();
         
-        socket.emit('message-sent', { id: messageId, text: data.text, time: time });
+        db.run("INSERT INTO group_messages (id, group_id, from_id, text, time) VALUES (?, ?, ?, ?, ?)", 
+            [messageId, data.groupId, currentUserId, data.text, time]);
+        
+        db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
+            members.forEach(member => {
+                const memberSocket = onlineUsers.get(member.user_id);
+                if (memberSocket && member.user_id !== currentUserId) {
+                    io.to(memberSocket.socketId).emit('new-group-message', {
+                        id: messageId,
+                        groupId: data.groupId,
+                        from: currentUserId,
+                        fromName: data.fromName,
+                        text: data.text,
+                        time: time
+                    });
+                }
+            });
+        });
+    });
+    
+    // Уведомление о входе в группу
+    socket.on('group-join-notify', (data) => {
+        db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
+            members.forEach(member => {
+                const memberSocket = onlineUsers.get(member.user_id);
+                if (memberSocket && member.user_id !== currentUserId) {
+                    io.to(memberSocket.socketId).emit('system-message', {
+                        groupId: data.groupId,
+                        text: `👤 ${data.userName} присоединился к группе`
+                    });
+                }
+            });
+        });
     });
     
     // Печатает
@@ -224,6 +321,53 @@ io.on('connection', (socket) => {
         if (toUser) {
             io.to(toUser.socketId).emit('call-ended');
         }
+    });
+    
+    // МУЛЬТИПЛЕЕРНЫЕ ИГРЫ
+    socket.on('invite-game', (data) => {
+        const toUser = onlineUsers.get(data.toUserId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('game-invite', {
+                fromId: currentUserId,
+                fromName: data.fromName,
+                game: data.game
+            });
+        } else {
+            socket.emit('game-error', { message: 'Пользователь не в сети' });
+        }
+    });
+    
+    socket.on('accept-game', (data) => {
+        const fromUser = onlineUsers.get(data.fromId);
+        if (fromUser) {
+            const roomId = `game_${data.fromId}_${currentUserId}`;
+            gameRooms.set(roomId, {
+                players: [data.fromId, currentUserId],
+                game: data.game,
+                state: {}
+            });
+            
+            io.to(fromUser.socketId).emit('game-start', { roomId, opponent: currentUserId, game: data.game });
+            io.to(toUser.socketId).emit('game-start', { roomId, opponent: data.fromId, game: data.game });
+        }
+    });
+    
+    socket.on('game-decline', (data) => {
+        const toUser = onlineUsers.get(data.toId);
+        if (toUser) {
+            io.to(toUser.socketId).emit('game-declined');
+        }
+    });
+    
+    socket.on('game-move', (data) => {
+        const room = gameRooms.get(data.roomId);
+        if (room) {
+            io.to(room.players[0]).to(room.players[1]).emit('game-state', data.state);
+        }
+    });
+    
+    socket.on('game-end', (data) => {
+        gameRooms.delete(data.roomId);
     });
     
     socket.on('disconnect', () => {
