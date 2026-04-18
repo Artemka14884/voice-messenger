@@ -168,7 +168,6 @@ app.get('/api/messages/:userId/:friendId', (req, res) => {
     });
 });
 
-// Группы
 app.get('/api/groups/:userId', (req, res) => {
     db.all(`SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members
             FROM groups g
@@ -220,7 +219,6 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
-    // Личное сообщение
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
@@ -241,7 +239,6 @@ io.on('connection', (socket) => {
         }
     });
     
-    // Групповое сообщение
     socket.on('group-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
@@ -266,7 +263,6 @@ io.on('connection', (socket) => {
         });
     });
     
-    // Уведомление о входе в группу
     socket.on('group-join-notify', (data) => {
         db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
             members.forEach(member => {
@@ -281,7 +277,6 @@ io.on('connection', (socket) => {
         });
     });
     
-    // Печатает
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
@@ -323,14 +318,13 @@ io.on('connection', (socket) => {
         }
     });
     
-    // МУЛЬТИПЛЕЕРНЫЕ ИГРЫ
+    // Игра Крестики-Нолики
     socket.on('invite-game', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
             io.to(toUser.socketId).emit('game-invite', {
                 fromId: currentUserId,
-                fromName: data.fromName,
-                game: data.game
+                fromName: data.fromName
             });
         } else {
             socket.emit('game-error', { message: 'Пользователь не в сети' });
@@ -343,12 +337,12 @@ io.on('connection', (socket) => {
             const roomId = `game_${data.fromId}_${currentUserId}`;
             gameRooms.set(roomId, {
                 players: [data.fromId, currentUserId],
-                game: data.game,
-                state: {}
+                board: Array(9).fill(null),
+                turn: data.fromId
             });
             
-            io.to(fromUser.socketId).emit('game-start', { roomId, opponent: currentUserId, game: data.game });
-            io.to(toUser.socketId).emit('game-start', { roomId, opponent: data.fromId, game: data.game });
+            io.to(fromUser.socketId).emit('game-start', { roomId, opponent: currentUserId, turn: data.fromId });
+            io.to(toUser.socketId).emit('game-start', { roomId, opponent: data.fromId, turn: data.fromId });
         }
     });
     
@@ -361,10 +355,33 @@ io.on('connection', (socket) => {
     
     socket.on('game-move', (data) => {
         const room = gameRooms.get(data.roomId);
-        if (room) {
-            io.to(room.players[0]).to(room.players[1]).emit('game-state', data.state);
+        if (room && room.turn === currentUserId) {
+            room.board[data.index] = data.symbol;
+            room.turn = room.players[0] === currentUserId ? room.players[1] : room.players[0];
+            io.to(room.players[0]).to(room.players[1]).emit('game-state', {
+                board: room.board,
+                turn: room.turn
+            });
+            
+            // Проверка победителя
+            const winner = checkWinner(room.board);
+            if (winner) {
+                io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner });
+                gameRooms.delete(data.roomId);
+            }
         }
     });
+    
+    function checkWinner(board) {
+        const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for (let line of lines) {
+            if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
+                return board[line[0]];
+            }
+        }
+        if (board.every(c => c !== null)) return 'tie';
+        return null;
+    }
     
     socket.on('game-end', (data) => {
         gameRooms.delete(data.roomId);
