@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Мессенджер - Группы и Игры</title>
+    <title>Мессенджер</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
@@ -23,23 +23,23 @@
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
         
         .app { display: flex; height: 100vh; }
-        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 45%; } }
+        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
         
-        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; overflow-y: auto; }
-        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; }
+        .sidebar { width: 300px; background: #16213e; color: white; display: flex; flex-direction: column; }
+        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; }
         .user-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 2px solid #667eea; }
         .user-info { flex: 1; }
         .user-name { font-size: 16px; font-weight: bold; }
         .logout-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
         .nav-tabs { display: flex; background: #0f3460; padding: 5px; gap: 5px; }
-        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; transition: all 0.3s; }
+        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; }
         .nav-tab.active { background: #667eea; }
         .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
         .panel.active { display: block; }
         
-        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
-        .user-item:hover, .group-item:hover { background: #1a1a4e; transform: translateX(5px); }
+        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:hover, .group-item:hover { background: #1a1a4e; }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
         .call-btn { padding: 5px 8px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
         .game-btn { background: #FF9800; }
@@ -59,8 +59,7 @@
         .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .message-text { word-wrap: break-word; }
         .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
-        .sender-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; }
         
         .file-attachment { display: flex; align-items: center; gap: 8px; padding: 5px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
         .message-image { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; }
@@ -68,7 +67,7 @@
         .voice-play { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
         
         .typing { padding: 8px 15px; font-size: 12px; color: #666; font-style: italic; background: white; }
-        .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; flex-wrap: wrap; }
+        .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; }
         .input-main { display: flex; flex: 1; gap: 10px; align-items: center; }
         .input-area input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 25px; }
         .input-area button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
@@ -94,8 +93,11 @@
         .game-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2500; }
         .game-modal.active { display: flex; }
         .game-container { background: #1a1a2e; border-radius: 20px; padding: 20px; text-align: center; }
-        canvas { background: #000; border-radius: 10px; cursor: pointer; }
-        .game-controls { margin-top: 15px; display: flex; gap: 20px; justify-content: center; }
+        .game-board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; background: #fff; padding: 10px; border-radius: 10px; }
+        .game-cell { width: 100px; height: 100px; background: #2196F3; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; color: white; cursor: pointer; border-radius: 10px; transition: all 0.2s; }
+        .game-cell:hover { background: #1976D2; transform: scale(1.02); }
+        .game-info { margin-top: 15px; color: white; font-size: 18px; }
+        .game-controls { margin-top: 15px; }
         .game-btn-close { padding: 10px 20px; background: #4CAF50; border: none; border-radius: 10px; color: white; cursor: pointer; }
         
         .image-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
@@ -107,19 +109,12 @@
         
         .hidden { display: none; }
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; text-align: center; padding: 20px; }
-        
-        .game-list { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
-        .game-card { background: #0f3460; border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; flex: 1; min-width: 120px; transition: transform 0.2s; }
-        .game-card:hover { transform: scale(1.05); background: #1a1a4e; }
-        .game-card .emoji { font-size: 48px; margin-bottom: 10px; }
-        .game-card .title { font-weight: bold; margin-bottom: 5px; }
-        .game-card .desc { font-size: 11px; opacity: 0.7; }
     </style>
 </head>
 <body>
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <h1>💬 Мессенджер + Игры</h1>
+            <h1>💬 Мессенджер</h1>
             <div><div class="tab active" onclick="showTab('login')">Вход</div><div class="tab" onclick="showTab('register')">Регистрация</div></div>
             
             <div id="loginForm" class="form active">
@@ -183,26 +178,11 @@
             </div>
             
             <div id="gamesPanel" class="panel">
-                <div class="game-list">
-                    <div class="game-card" onclick="openGame('pingpong')">
-                        <div class="emoji">🏓</div>
-                        <div class="title">Пинг-Понг</div>
-                        <div class="desc">Играй с другом</div>
-                    </div>
-                    <div class="game-card" onclick="openGame('snake')">
-                        <div class="emoji">🐍</div>
-                        <div class="title">Змейка</div>
-                        <div class="desc">Одиночная игра</div>
-                    </div>
-                    <div class="game-card" onclick="openGame('tic-tac-toe')">
-                        <div class="emoji">❌⭕</div>
-                        <div class="title">Крестики-Нолики</div>
-                        <div class="desc">Играй с другом</div>
-                    </div>
-                    <div class="game-card" onclick="openGame('memory')">
-                        <div class="emoji">🧠</div>
-                        <div class="title">Мемори</div>
-                        <div class="desc">Одиночная игра</div>
+                <div style="text-align:center; padding:20px">
+                    <div style="background:#0f3460; border-radius:15px; padding:30px; cursor:pointer" onclick="playWithFriend()">
+                        <div style="font-size:48px; margin-bottom:10px">❌⭕</div>
+                        <div style="font-size:18px; font-weight:bold">Крестики-Нолики</div>
+                        <div style="font-size:12px; opacity:0.7; margin-top:5px">Играй с другом</div>
                     </div>
                 </div>
             </div>
@@ -214,8 +194,7 @@
                 <div id="callBtns" style="display:none">
                     <button class="call-btn" onclick="startCall('audio')">🎤</button>
                     <button class="call-btn" onclick="startCall('video')">📹</button>
-                    <button class="call-btn game-btn" onclick="inviteToGame('pingpong')">🏓</button>
-                    <button class="call-btn game-btn" onclick="inviteToGame('tic-tac-toe')">❌⭕</button>
+                    <button class="call-btn game-btn" onclick="inviteToGame()">🎮</button>
                 </div>
             </div>
             <div id="messagesArea" class="messages"><div class="no-chat">👈 Нажмите на чат</div></div>
@@ -232,10 +211,10 @@
         </div>
     </div>
 
-    <!-- Игровое окно -->
     <div id="gameModal" class="game-modal">
         <div class="game-container">
-            <canvas id="gameCanvas" width="500" height="500"></canvas>
+            <div id="gameBoard" class="game-board"></div>
+            <div id="gameInfo" class="game-info"></div>
             <div class="game-controls">
                 <button class="game-btn-close" onclick="closeGame()">Закрыть</button>
             </div>
@@ -280,18 +259,11 @@
         let currentCaptcha = "";
         
         // Игра
-        let gameActive = false;
-        let gameCanvas, gameCtx;
         let gameRoomId = null;
-        let gameOpponent = null;
-        let gameType = null;
-        let gameInviteSent = false;
-        
-        // Крестики-нолики
-        let tttBoard = Array(9).fill(null);
-        let tttTurn = 'X';
-        let tttMySymbol = 'X';
-        let tttGameOver = false;
+        let gameBoard = Array(9).fill(null);
+        let gameMyTurn = false;
+        let gameSymbol = 'X';
+        let gameOver = false;
         
         const config = {
             iceServers: [
@@ -410,15 +382,12 @@
                         <div>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button>
-                            <button class="call-btn game-btn" onclick="event.stopPropagation();inviteToGameUser('${u.id}', '${u.username}', 'pingpong')">🏓</button>
-                            <button class="call-btn game-btn" onclick="event.stopPropagation();inviteToGameUser('${u.id}', '${u.username}', 'tic-tac-toe')">❌⭕</button>
                         </div>
                     </div>
                 `).join('');
             }
         }
         
-        // Группы
         async function loadGroups() {
             const res = await fetch(`/api/groups/${currentUser.userId}`);
             const data = await res.json();
@@ -471,7 +440,7 @@
             } else {
                 data.messages.forEach(msg => {
                     const isOwn = msg.from_id === currentUser.userId;
-                    addMessageToChat(msg.text, null, null, msg.time, isOwn, msg.from_id, msg.username, msg.avatar);
+                    addMessageToChat(msg.text, null, null, msg.time, isOwn, msg.username);
                 });
             }
             scrollToBottom();
@@ -483,7 +452,7 @@
             if (!text || !currentGroup || !socket) return;
             
             socket.emit('group-message', { groupId: currentGroup.id, text, fromName: currentUser.username });
-            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
+            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, currentUser.username);
             input.value = '';
         }
         
@@ -525,17 +494,15 @@
             input.value = '';
         }
         
-        function addMessageToChat(text, fileUrl, voiceUrl, time, isOwn, fromId, fromName, fromAvatar) {
+        function addMessageToChat(text, fileUrl, voiceUrl, time, isOwn, senderName) {
             const container = document.getElementById('messagesArea');
             if (container.querySelector('.no-chat')) container.innerHTML = '';
             const div = document.createElement('div');
             div.className = `message ${isOwn ? 'own' : 'other'}`;
             
             let senderHtml = '';
-            if (!isOwn && fromName) {
-                senderHtml = `<div class="message-sender"><img src="${fromAvatar || '/avatars/default.png'}" class="sender-avatar" onerror="this.src='/avatars/default.png'"> ${escapeHtml(fromName)}</div>`;
-            } else if (!isOwn && currentFriend) {
-                senderHtml = `<div class="message-sender">${escapeHtml(currentFriend.username)}</div>`;
+            if (!isOwn && senderName) {
+                senderHtml = `<div class="message-sender">${escapeHtml(senderName)}</div>`;
             }
             
             let content = '';
@@ -580,7 +547,7 @@
                     addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true);
                 } else if (currentGroup) {
                     socket.emit('group-message', { groupId: currentGroup.id, file: data.url, text: null, fromName: currentUser.username });
-                    addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
+                    addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true, currentUser.username);
                 }
             }
             input.value = '';
@@ -610,7 +577,7 @@
                         addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true);
                     } else if (data.success && currentGroup && socket) {
                         socket.emit('group-message', { groupId: currentGroup.id, voice: data.url, text: null, fromName: currentUser.username });
-                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
+                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true, currentUser.username);
                     }
                     stream.getTracks().forEach(t => t.stop());
                 };
@@ -684,467 +651,122 @@
         function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
         function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
         
-        // ИГРЫ
-        function openGame(game) {
-            if (game === 'pingpong') startPingPongSingle();
-            else if (game === 'snake') startSnake();
-            else if (game === 'tic-tac-toe') startTicTacToeSingle();
-            else if (game === 'memory') startMemory();
-        }
-        
-        function inviteToGameUser(userId, userName, game) {
-            if (!currentFriend || currentFriend.id !== userId) {
-                currentFriend = { id: userId, username: userName };
+        // ИГРА
+        function playWithFriend() {
+            if (!currentFriend) {
+                alert('Сначала выберите друга в чатах!');
+                return;
             }
-            inviteToGame(game);
+            inviteToGame();
         }
         
-        function inviteToGame(game) {
+        function inviteToGame() {
             if (!currentFriend) {
                 alert('Выберите пользователя для игры');
                 return;
             }
-            if (gameInviteSent) {
-                alert('Приглашение уже отправлено');
+            socket.emit('invite-game', { toUserId: currentFriend.id, fromName: currentUser.username });
+            alert(`Приглашение отправлено ${currentFriend.username}`);
+        }
+        
+        function startGame(roomId, opponent, firstTurn) {
+            gameRoomId = roomId;
+            gameBoard = Array(9).fill(null);
+            gameMyTurn = (firstTurn === currentUser.userId);
+            gameSymbol = gameMyTurn ? 'X' : 'O';
+            gameOver = false;
+            
+            renderGameBoard();
+            document.getElementById('gameInfo').innerHTML = gameMyTurn ? 'Ваш ход (X)' : 'Ход соперника (O)';
+            document.getElementById('gameModal').classList.add('active');
+        }
+        
+        function renderGameBoard() {
+            const boardEl = document.getElementById('gameBoard');
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'game-cell';
+                cell.textContent = gameBoard[i] || '';
+                cell.onclick = () => makeMove(i);
+                boardEl.appendChild(cell);
+            }
+        }
+        
+        function makeMove(index) {
+            if (gameOver) return;
+            if (!gameMyTurn) {
+                alert('Сейчас не ваш ход');
                 return;
             }
-            gameInviteSent = true;
-            socket.emit('invite-game', { toUserId: currentFriend.id, fromName: currentUser.username, game: game });
-            alert(`Приглашение в ${game === 'pingpong' ? 'Пинг-Понг' : 'Крестики-Нолики'} отправлено ${currentFriend.username}`);
-            setTimeout(() => { gameInviteSent = false; }, 30000);
-        }
-        
-        function startMultiplayerGame(roomId, opponent, game) {
-            gameRoomId = roomId;
-            gameOpponent = opponent;
-            gameType = game;
-            gameActive = true;
-            const modal = document.getElementById('gameModal');
-            modal.classList.add('active');
-            gameCanvas = document.getElementById('gameCanvas');
-            gameCtx = gameCanvas.getContext('2d');
-            
-            if (game === 'tic-tac-toe') {
-                startTicTacToeMultiplayer();
-            } else if (game === 'pingpong') {
-                startPingPongMultiplayer();
-            }
-        }
-        
-        // Крестики-нолики мультиплеер
-        function startTicTacToeMultiplayer() {
-            gameCanvas.width = 300;
-            gameCanvas.height = 300;
-            tttBoard = Array(9).fill(null);
-            tttTurn = 'X';
-            tttMySymbol = 'X';
-            tttGameOver = false;
-            
-            function checkWinner(board) {
-                const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-                for (let line of lines) {
-                    if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
-                        return board[line[0]];
-                    }
-                }
-                if (board.every(c => c !== null)) return 'tie';
-                return null;
+            if (gameBoard[index]) {
+                alert('Клетка занята');
+                return;
             }
             
-            function draw() {
-                if (!gameCtx) return;
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(0, 0, 300, 300);
-                gameCtx.strokeStyle = '#000';
-                gameCtx.lineWidth = 2;
-                for (let i = 1; i < 3; i++) {
-                    gameCtx.beginPath(); gameCtx.moveTo(i * 100, 0); gameCtx.lineTo(i * 100, 300); gameCtx.stroke();
-                    gameCtx.beginPath(); gameCtx.moveTo(0, i * 100); gameCtx.lineTo(300, i * 100); gameCtx.stroke();
-                }
-                gameCtx.font = '60px Arial';
-                gameCtx.fillStyle = '#000';
-                for (let i = 0; i < 9; i++) {
-                    if (tttBoard[i]) {
-                        let x = (i % 3) * 100 + 35;
-                        let y = Math.floor(i / 3) * 100 + 70;
-                        gameCtx.fillText(tttBoard[i], x, y);
-                    }
-                }
-                gameCtx.font = '16px Arial';
-                gameCtx.fillStyle = '#333';
-                gameCtx.fillText(tttTurn === tttMySymbol ? 'Ваш ход' : 'Ход соперника', 100, 290);
-            }
+            gameBoard[index] = gameSymbol;
+            renderGameBoard();
             
-            gameCanvas.addEventListener('click', (e) => {
-                if (tttGameOver) return;
-                if (tttTurn !== tttMySymbol) return;
-                const rect = gameCanvas.getBoundingClientRect();
-                const x = Math.floor((e.clientX - rect.left) / rect.width * 3);
-                const y = Math.floor((e.clientY - rect.top) / rect.height * 3);
-                const idx = y * 3 + x;
-                if (tttBoard[idx]) return;
-                
-                tttBoard[idx] = tttMySymbol;
-                draw();
-                
-                const winner = checkWinner(tttBoard);
-                if (winner) {
-                    tttGameOver = true;
-                    if (winner === 'tie') alert('Ничья!');
-                    else alert(`Победил ${winner === tttMySymbol ? 'Вы' : 'Соперник'}!`);
-                    closeGame();
-                    return;
-                }
-                
-                tttTurn = tttTurn === 'X' ? 'O' : 'X';
-                if (socket && gameRoomId) {
-                    socket.emit('game-move', { roomId: gameRoomId, state: { board: tttBoard, turn: tttTurn } });
-                }
-            });
+            socket.emit('game-move', { roomId: gameRoomId, index: index, symbol: gameSymbol });
+            gameMyTurn = false;
+            document.getElementById('gameInfo').innerHTML = 'Ход соперника...';
             
-            draw();
-        }
-        
-        function startTicTacToeSingle() {
-            gameCanvas.width = 300;
-            gameCanvas.height = 300;
-            let board = Array(9).fill(null);
-            let turn = 'X';
-            let gameOver = false;
-            
-            function checkWinner(board) {
-                const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-                for (let line of lines) {
-                    if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
-                        return board[line[0]];
-                    }
-                }
-                if (board.every(c => c !== null)) return 'tie';
-                return null;
-            }
-            
-            function aiMove() {
-                const empty = board.reduce((arr, cell, idx) => { if (!cell) arr.push(idx); return arr; }, []);
-                if (empty.length === 0) return;
-                const idx = empty[Math.floor(Math.random() * empty.length)];
-                board[idx] = 'O';
-                draw();
-                const winner = checkWinner(board);
-                if (winner) {
-                    gameOver = true;
-                    if (winner === 'tie') alert('Ничья!');
-                    else alert(`Победил ${winner === 'X' ? 'Вы' : 'AI'}!`);
-                    setTimeout(() => closeGame(), 2000);
-                    return;
-                }
-                turn = 'X';
-            }
-            
-            function draw() {
-                if (!gameCtx) return;
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(0, 0, 300, 300);
-                gameCtx.strokeStyle = '#000';
-                gameCtx.lineWidth = 2;
-                for (let i = 1; i < 3; i++) {
-                    gameCtx.beginPath(); gameCtx.moveTo(i * 100, 0); gameCtx.lineTo(i * 100, 300); gameCtx.stroke();
-                    gameCtx.beginPath(); gameCtx.moveTo(0, i * 100); gameCtx.lineTo(300, i * 100); gameCtx.stroke();
-                }
-                gameCtx.font = '60px Arial';
-                gameCtx.fillStyle = '#000';
-                for (let i = 0; i < 9; i++) {
-                    if (board[i]) {
-                        let x = (i % 3) * 100 + 35;
-                        let y = Math.floor(i / 3) * 100 + 70;
-                        gameCtx.fillText(board[i], x, y);
-                    }
-                }
-            }
-            
-            gameCanvas.addEventListener('click', (e) => {
-                if (gameOver) return;
-                if (turn !== 'X') return;
-                const rect = gameCanvas.getBoundingClientRect();
-                const x = Math.floor((e.clientX - rect.left) / rect.width * 3);
-                const y = Math.floor((e.clientY - rect.top) / rect.height * 3);
-                const idx = y * 3 + x;
-                if (board[idx]) return;
-                
-                board[idx] = 'X';
-                draw();
-                const winner = checkWinner(board);
-                if (winner) {
-                    gameOver = true;
-                    if (winner === 'tie') alert('Ничья!');
-                    else alert(`Победил ${winner === 'X' ? 'Вы' : 'AI'}!`);
-                    setTimeout(() => closeGame(), 2000);
-                    return;
-                }
-                turn = 'O';
-                setTimeout(aiMove, 500);
-            });
-            
-            draw();
-            const modal = document.getElementById('gameModal');
-            modal.classList.add('active');
-        }
-        
-        // Пинг-понг мультиплеер
-        function startPingPongMultiplayer() {
-            gameCanvas.width = 600;
-            gameCanvas.height = 400;
-            let ball = { x: 300, y: 200, vx: 3, vy: 2 };
-            let myPaddle = 150;
-            let opponentPaddle = 150;
-            let myScore = 0;
-            let opponentScore = 0;
-            
-            const handleMouseMove = (e) => {
-                const rect = gameCanvas.getBoundingClientRect();
-                let y = (e.clientY - rect.top) * (400 / rect.height);
-                myPaddle = Math.max(0, Math.min(y, 320));
-                if (socket && gameRoomId) {
-                    socket.emit('game-move', { roomId: gameRoomId, state: { myPaddle: myPaddle } });
-                }
-            };
-            gameCanvas.addEventListener('mousemove', handleMouseMove);
-            
-            function draw() {
-                if (!gameCtx || !gameActive) return;
-                gameCtx.fillStyle = '#000';
-                gameCtx.fillRect(0, 0, 600, 400);
-                gameCtx.strokeStyle = '#fff';
-                gameCtx.beginPath(); gameCtx.moveTo(300, 0); gameCtx.lineTo(300, 400); gameCtx.stroke();
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(10, myPaddle, 10, 80);
-                gameCtx.fillRect(580, opponentPaddle, 10, 80);
-                gameCtx.beginPath(); gameCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2); gameCtx.fill();
-                gameCtx.font = '20px Arial';
-                gameCtx.fillText(myScore, 250, 30);
-                gameCtx.fillText(opponentScore, 330, 30);
-                
-                ball.x += ball.vx;
-                ball.y += ball.vy;
-                if (ball.y <= 0 || ball.y >= 400) ball.vy = -ball.vy;
-                if (ball.x <= 20 && ball.x >= 15 && ball.y >= myPaddle && ball.y <= myPaddle + 80) {
-                    ball.vx = -ball.vx;
-                }
-                if (ball.x >= 580 && ball.x <= 585 && ball.y >= opponentPaddle && ball.y <= opponentPaddle + 80) {
-                    ball.vx = -ball.vx;
-                }
-                if (ball.x <= 0) {
-                    opponentScore++;
-                    ball = { x: 300, y: 200, vx: 3, vy: 2 };
-                }
-                if (ball.x >= 600) {
-                    myScore++;
-                    ball = { x: 300, y: 200, vx: -3, vy: 2 };
-                }
-                
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
-        
-        function startPingPongSingle() {
-            gameCanvas.width = 600;
-            gameCanvas.height = 400;
-            let ball = { x: 300, y: 200, vx: 3, vy: 2 };
-            let myPaddle = 150;
-            let aiPaddle = 150;
-            let score = 0;
-            
-            const handleMouseMove = (e) => {
-                const rect = gameCanvas.getBoundingClientRect();
-                let y = (e.clientY - rect.top) * (400 / rect.height);
-                myPaddle = Math.max(0, Math.min(y, 320));
-            };
-            gameCanvas.addEventListener('mousemove', handleMouseMove);
-            
-            function draw() {
-                if (!gameCtx) return;
-                gameCtx.fillStyle = '#000';
-                gameCtx.fillRect(0, 0, 600, 400);
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(10, myPaddle, 10, 80);
-                gameCtx.fillRect(580, aiPaddle, 10, 80);
-                gameCtx.beginPath(); gameCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2); gameCtx.fill();
-                gameCtx.font = '20px Arial';
-                gameCtx.fillText('Score: ' + score, 250, 30);
-                
-                ball.x += ball.vx;
-                ball.y += ball.vy;
-                if (ball.y <= 0 || ball.y >= 400) ball.vy = -ball.vy;
-                if (ball.x <= 20 && ball.x >= 15 && ball.y >= myPaddle && ball.y <= myPaddle + 80) {
-                    ball.vx = -ball.vx;
-                    score++;
-                }
-                if (ball.x >= 580 && ball.x <= 585 && ball.y >= aiPaddle && ball.y <= aiPaddle + 80) {
-                    ball.vx = -ball.vx;
-                }
-                if (ball.x <= 0) {
-                    score = Math.max(0, score - 1);
-                    ball = { x: 300, y: 200, vx: 3, vy: 2 };
-                }
-                if (ball.x >= 600) {
-                    alert('Победа! Счёт: ' + score);
-                    closeGame();
-                    return;
-                }
-                aiPaddle += (ball.y - (aiPaddle + 40)) * 0.05;
-                aiPaddle = Math.max(0, Math.min(aiPaddle, 320));
-                requestAnimationFrame(draw);
-            }
-            draw();
-            const modal = document.getElementById('gameModal');
-            modal.classList.add('active');
-        }
-        
-        function startSnake() {
-            gameCanvas.width = 400;
-            gameCanvas.height = 400;
-            let snake = [{x: 200, y: 200}];
-            let food = {x: 100, y: 100};
-            let dir = {x: 20, y: 0};
-            let score = 0;
-            
-            function draw() {
-                if (!gameCtx) return;
-                gameCtx.fillStyle = '#000';
-                gameCtx.fillRect(0, 0, 400, 400);
-                gameCtx.fillStyle = '#0f0';
-                snake.forEach(segment => { gameCtx.fillRect(segment.x, segment.y, 18, 18); });
-                gameCtx.fillStyle = '#f00';
-                gameCtx.fillRect(food.x, food.y, 18, 18);
-                gameCtx.font = '20px Arial';
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillText('Score: ' + score, 10, 30);
-                
-                let head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-                if (head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 400) {
-                    alert('Game Over! Score: ' + score);
-                    closeGame();
-                    return;
-                }
-                snake.unshift(head);
-                if (Math.abs(head.x - food.x) < 10 && Math.abs(head.y - food.y) < 10) {
-                    score++;
-                    food = {x: Math.floor(Math.random() * 380 / 20) * 20, y: Math.floor(Math.random() * 380 / 20) * 20};
+            // Проверка победы локально
+            const winner = checkWinnerLocal(gameBoard);
+            if (winner) {
+                gameOver = true;
+                if (winner === gameSymbol) {
+                    document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                } else if (winner === 'tie') {
+                    document.getElementById('gameInfo').innerHTML = 'Ничья!';
                 } else {
-                    snake.pop();
+                    document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
                 }
-                for (let i = 1; i < snake.length; i++) {
-                    if (snake[i].x === head.x && snake[i].y === head.y) {
-                        alert('Game Over! Score: ' + score);
-                        closeGame();
-                        return;
-                    }
-                }
-                setTimeout(() => requestAnimationFrame(draw), 100);
+                setTimeout(() => closeGame(), 2000);
             }
-            
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowUp' && dir.y === 0) dir = {x: 0, y: -20};
-                if (e.key === 'ArrowDown' && dir.y === 0) dir = {x: 0, y: 20};
-                if (e.key === 'ArrowLeft' && dir.x === 0) dir = {x: -20, y: 0};
-                if (e.key === 'ArrowRight' && dir.x === 0) dir = {x: 20, y: 0};
-            });
-            
-            draw();
-            const modal = document.getElementById('gameModal');
-            modal.classList.add('active');
         }
         
-        function startMemory() {
-            const cards = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼'];
-            let gameCards = [...cards, ...cards];
-            for (let i = gameCards.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [gameCards[i], gameCards[j]] = [gameCards[j], gameCards[i]];
-            }
-            let flipped = [];
-            let matched = Array(16).fill(false);
-            let locked = false;
-            
-            gameCanvas.width = 400;
-            gameCanvas.height = 400;
-            
-            function draw() {
-                if (!gameCtx) return;
-                const size = 80;
-                gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(0, 0, 400, 400);
-                for (let i = 0; i < 16; i++) {
-                    let x = (i % 4) * size;
-                    let y = Math.floor(i / 4) * size;
-                    if (matched[i]) {
-                        gameCtx.fillStyle = '#4CAF50';
-                        gameCtx.fillRect(x, y, size-2, size-2);
-                        gameCtx.fillStyle = '#000';
-                        gameCtx.font = '40px Arial';
-                        gameCtx.fillText(gameCards[i], x+20, y+55);
-                    } else if (flipped.includes(i)) {
-                        gameCtx.fillStyle = '#fff';
-                        gameCtx.fillRect(x, y, size-2, size-2);
-                        gameCtx.fillStyle = '#000';
-                        gameCtx.font = '40px Arial';
-                        gameCtx.fillText(gameCards[i], x+20, y+55);
-                    } else {
-                        gameCtx.fillStyle = '#2196F3';
-                        gameCtx.fillRect(x, y, size-2, size-2);
-                        gameCtx.fillStyle = '#fff';
-                        gameCtx.font = '30px Arial';
-                        gameCtx.fillText('?', x+30, y+55);
-                    }
+        function checkWinnerLocal(board) {
+            const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let line of lines) {
+                if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
+                    return board[line[0]];
                 }
             }
-            
-            gameCanvas.addEventListener('click', (e) => {
-                if (locked) return;
-                const rect = gameCanvas.getBoundingClientRect();
-                const x = Math.floor((e.clientX - rect.left) / 100);
-                const y = Math.floor((e.clientY - rect.top) / 100);
-                const idx = y * 4 + x;
-                if (idx >= 16) return;
-                if (matched[idx] || flipped.includes(idx)) return;
-                
-                flipped.push(idx);
-                draw();
-                
-                if (flipped.length === 2) {
-                    locked = true;
-                    setTimeout(() => {
-                        if (gameCards[flipped[0]] === gameCards[flipped[1]]) {
-                            matched[flipped[0]] = true;
-                            matched[flipped[1]] = true;
-                        }
-                        flipped = [];
-                        draw();
-                        if (matched.every(m => m === true)) {
-                            alert('Поздравляю! Вы выиграли!');
-                            closeGame();
-                        }
-                        locked = false;
-                    }, 500);
+            if (board.every(c => c !== null)) return 'tie';
+            return null;
+        }
+        
+        function updateGameState(board, turn) {
+            gameBoard = board;
+            gameMyTurn = (turn === currentUser.userId);
+            renderGameBoard();
+            if (!gameOver) {
+                document.getElementById('gameInfo').innerHTML = gameMyTurn ? 'Ваш ход (X)' : 'Ход соперника (O)';
+            }
+            const winner = checkWinnerLocal(board);
+            if (winner && !gameOver) {
+                gameOver = true;
+                if (winner === gameSymbol) {
+                    document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                } else if (winner === 'tie') {
+                    document.getElementById('gameInfo').innerHTML = 'Ничья!';
+                } else {
+                    document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
                 }
-            });
-            
-            draw();
-            const modal = document.getElementById('gameModal');
-            modal.classList.add('active');
+                setTimeout(() => closeGame(), 2000);
+            }
+        }
+        
+        function closeGame() {
+            if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
+            gameRoomId = null;
+            document.getElementById('gameModal').classList.remove('active');
         }
         
         function openImage(url) { document.getElementById('viewImage').src = url; document.getElementById('imageModal').classList.add('active'); }
         function closeImageViewer() { document.getElementById('imageModal').classList.remove('active'); }
         function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
-        function closeGame() { 
-            gameActive = false;
-            gameInviteSent = false;
-            if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
-            gameRoomId = null;
-            const modal = document.getElementById('gameModal');
-            if (modal) modal.classList.remove('active');
-        }
         
         function connectSocket() {
             socket = io();
@@ -1158,7 +780,7 @@
             
             socket.on('new-group-message', (data) => {
                 if (currentGroup && data.groupId === currentGroup.id) {
-                    addMessageToChat(data.text, null, null, data.time, false, data.from, data.fromName, null);
+                    addMessageToChat(data.text, null, null, data.time, false, data.fromName);
                 }
             });
             
@@ -1187,40 +809,32 @@
             
             // Игра
             socket.on('game-invite', (data) => {
-                if (confirm(`${data.fromName} приглашает вас сыграть в ${data.game === 'pingpong' ? 'Пинг-Понг' : 'Крестики-Нолики'}! Принять?`)) {
-                    socket.emit('accept-game', { fromId: data.fromId, toId: currentUser.userId, game: data.game });
+                if (confirm(`${data.fromName} приглашает вас сыграть в Крестики-Нолики! Принять?`)) {
+                    socket.emit('accept-game', { fromId: data.fromId, toId: currentUser.userId });
                 } else {
                     socket.emit('game-decline', { toId: data.fromId });
                 }
             });
-            socket.on('game-start', (data) => { startMultiplayerGame(data.roomId, data.opponent, data.game); });
-            socket.on('game-declined', () => { alert('Собеседник отклонил приглашение'); gameInviteSent = false; });
-            socket.on('game-error', (data) => { alert(data.message); gameInviteSent = false; });
-            socket.on('game-state', (state) => {
-                if (gameType === 'tic-tac-toe' && gameActive) {
-                    tttBoard = state.board;
-                    tttTurn = state.turn;
-                    if (gameCtx) {
-                        gameCtx.fillStyle = '#fff';
-                        gameCtx.fillRect(0, 0, 300, 300);
-                        gameCtx.strokeStyle = '#000';
-                        for (let i = 1; i < 3; i++) {
-                            gameCtx.beginPath(); gameCtx.moveTo(i * 100, 0); gameCtx.lineTo(i * 100, 300); gameCtx.stroke();
-                            gameCtx.beginPath(); gameCtx.moveTo(0, i * 100); gameCtx.lineTo(300, i * 100); gameCtx.stroke();
-                        }
-                        gameCtx.font = '60px Arial';
-                        gameCtx.fillStyle = '#000';
-                        for (let i = 0; i < 9; i++) {
-                            if (tttBoard[i]) {
-                                let x = (i % 3) * 100 + 35;
-                                let y = Math.floor(i / 3) * 100 + 70;
-                                gameCtx.fillText(tttBoard[i], x, y);
-                            }
-                        }
-                        gameCtx.font = '16px Arial';
-                        gameCtx.fillStyle = '#333';
-                        gameCtx.fillText(tttTurn === tttMySymbol ? 'Ваш ход' : 'Ход соперника', 100, 290);
+            socket.on('game-start', (data) => {
+                startGame(data.roomId, data.opponent, data.turn);
+            });
+            socket.on('game-declined', () => {
+                alert('Собеседник отклонил приглашение');
+            });
+            socket.on('game-state', (data) => {
+                updateGameState(data.board, data.turn);
+            });
+            socket.on('game-over', (data) => {
+                if (!gameOver) {
+                    gameOver = true;
+                    if (data.winner === 'X') {
+                        document.getElementById('gameInfo').innerHTML = gameSymbol === 'X' ? '🎉 Вы победили! 🎉' : '😢 Вы проиграли';
+                    } else if (data.winner === 'O') {
+                        document.getElementById('gameInfo').innerHTML = gameSymbol === 'O' ? '🎉 Вы победили! 🎉' : '😢 Вы проиграли';
+                    } else if (data.winner === 'tie') {
+                        document.getElementById('gameInfo').innerHTML = 'Ничья!';
                     }
+                    setTimeout(() => closeGame(), 2000);
                 }
             });
         }
