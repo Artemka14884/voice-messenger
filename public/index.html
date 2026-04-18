@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Мессенджер - Игры, Группы, Заметки</title>
+    <title>Мессенджер - Онлайн игры</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
@@ -23,44 +23,34 @@
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
         
         .app { display: flex; height: 100vh; }
-        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 45%; } }
+        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
         
-        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; overflow-y: auto; }
-        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; }
+        .sidebar { width: 300px; background: #16213e; color: white; display: flex; flex-direction: column; }
+        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; }
         .user-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 2px solid #667eea; }
         .user-info { flex: 1; }
         .user-name { font-size: 16px; font-weight: bold; }
         .logout-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
         .nav-tabs { display: flex; background: #0f3460; padding: 5px; gap: 5px; }
-        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; transition: all 0.3s; }
+        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; }
         .nav-tab.active { background: #667eea; }
         .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
         .panel.active { display: block; }
         
-        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
-        .user-item:hover, .group-item:hover { background: #1a1a4e; transform: translateX(5px); }
-        .user-avatar-small { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+        .user-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:hover { background: #1a1a4e; }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
-        .call-btn { padding: 5px 10px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
+        .call-btn { padding: 5px 8px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
         .game-btn { background: #FF9800; }
         
         .invite-link { background: #0f3460; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; }
         .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
         
-        .create-group { display: flex; gap: 8px; margin-top: 10px; }
-        .create-group input { flex: 1; padding: 8px; border-radius: 10px; border: none; }
-        .create-group button { background: #4CAF50; border: none; border-radius: 10px; padding: 8px 15px; color: white; cursor: pointer; }
-        
-        .note-item { background: #0f3460; padding: 12px; border-radius: 10px; margin-bottom: 10px; }
-        .note-title { font-weight: bold; margin-bottom: 5px; }
-        .note-content { font-size: 12px; opacity: 0.8; }
-        .delete-note { background: none; border: none; color: #f44336; cursor: pointer; float: right; }
-        
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
         .chat-header { background: white; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 18px; }
+        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; }
         .message.own { background: #667eea; color: white; align-self: flex-end; }
         .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .message-text { word-wrap: break-word; }
@@ -109,17 +99,21 @@
         .image-modal img { max-width: 90%; max-height: 90%; }
         .close-image { position: absolute; top: 20px; right: 20px; background: white; width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; }
         
-        .system-message { text-align: center; font-size: 11px; opacity: 0.6; padding: 5px; font-style: italic; }
-        .wins-badge { background: gold; color: #333; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 5px; }
-        
         .hidden { display: none; }
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; text-align: center; padding: 20px; }
+        
+        .game-list { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+        .game-card { background: #0f3460; border-radius: 15px; padding: 20px; text-align: center; cursor: pointer; flex: 1; min-width: 120px; transition: transform 0.2s; }
+        .game-card:hover { transform: scale(1.05); background: #1a1a4e; }
+        .game-card .emoji { font-size: 48px; margin-bottom: 10px; }
+        .game-card .title { font-weight: bold; margin-bottom: 5px; }
+        .game-card .desc { font-size: 11px; opacity: 0.7; }
     </style>
 </head>
 <body>
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <h1>💬 Мессенджер + Пинг-Понг</h1>
+            <h1>💬 Мессенджер + Игры</h1>
             <div><div class="tab active" onclick="showTab('login')">Вход</div><div class="tab" onclick="showTab('register')">Регистрация</div></div>
             
             <div id="loginForm" class="form active">
@@ -150,7 +144,7 @@
                 <img id="myAvatar" class="user-avatar" src="/avatars/default.png" onclick="document.getElementById('avatarInput').click()">
                 <div class="user-info">
                     <div class="user-name" id="myName"></div>
-                    <div>🏆 Побед: <span id="myWins">0</span></div>
+                    <div>🟢 Онлайн</div>
                 </div>
                 <button class="logout-btn" onclick="logout()">🚪</button>
             </div>
@@ -158,8 +152,7 @@
             
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="switchPanel('chats')">💬 Чаты</div>
-                <div class="nav-tab" onclick="switchPanel('groups')">👥 Группы</div>
-                <div class="nav-tab" onclick="switchPanel('notes')">📝 Заметки</div>
+                <div class="nav-tab" onclick="switchPanel('games')">🎮 Игры</div>
             </div>
             
             <div id="chatsPanel" class="panel active">
@@ -174,20 +167,29 @@
                 </div>
             </div>
             
-            <div id="groupsPanel" class="panel">
-                <div id="groupsContainer"></div>
-                <div class="create-group">
-                    <input type="text" id="newGroupName" placeholder="Название группы">
-                    <button onclick="createGroup()">➕ Создать</button>
+            <div id="gamesPanel" class="panel">
+                <div class="game-list">
+                    <div class="game-card" onclick="openGame('pingpong')">
+                        <div class="emoji">🏓</div>
+                        <div class="title">Пинг-Понг</div>
+                        <div class="desc">Играй с другом</div>
+                    </div>
+                    <div class="game-card" onclick="openGame('snake')">
+                        <div class="emoji">🐍</div>
+                        <div class="title">Змейка</div>
+                        <div class="desc">Одиночная игра</div>
+                    </div>
+                    <div class="game-card" onclick="openGame('tetris')">
+                        <div class="emoji">🧩</div>
+                        <div class="title">Тетрис</div>
+                        <div class="desc">Одиночная игра</div>
+                    </div>
+                    <div class="game-card" onclick="openGame('tic-tac-toe')">
+                        <div class="emoji">❌⭕</div>
+                        <div class="title">Крестики-Нолики</div>
+                        <div class="desc">Играй с другом</div>
+                    </div>
                 </div>
-            </div>
-            
-            <div id="notesPanel" class="panel">
-                <div class="create-group" style="margin-bottom:10px">
-                    <input type="text" id="noteTitle" placeholder="Заголовок заметки">
-                    <button onclick="createNote()">➕ Добавить</button>
-                </div>
-                <div id="notesContainer"></div>
             </div>
         </div>
         
@@ -214,9 +216,10 @@
         </div>
     </div>
 
+    <!-- Игровое окно -->
     <div id="gameModal" class="game-modal">
         <div class="game-container">
-            <canvas id="gameCanvas" width="800" height="500"></canvas>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
             <div class="game-controls">
                 <button class="game-btn-close" onclick="closeGame()">Закрыть</button>
             </div>
@@ -254,7 +257,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        let socket, currentUser, currentChat = null;
+        let socket, currentUser, currentFriend = null;
         let typingTimeout;
         let peerConnection, localStream, currentCall = null;
         let mediaRecorder, audioChunks = [], isRecording = false;
@@ -263,10 +266,19 @@
         // Игра
         let gameActive = false;
         let gameCanvas, gameCtx;
+        let gameType = null;
         let gameRoomId = null;
         let gameOpponent = null;
-        let gamePaddleY = 200;
+        let gamePaddleY = 150;
         let gameInviteSent = false;
+        let gameBall = { x: 300, y: 200, vx: 3, vy: 2 };
+        let gamePaddleRight = 150;
+        let gameScores = { me: 0, opponent: 0 };
+        
+        // Змейка
+        let snakeGame = null;
+        let tetrisGame = null;
+        let ticTacToeGame = null;
         
         const config = {
             iceServers: [
@@ -306,14 +318,9 @@
                 document.querySelector('.nav-tab').classList.add('active');
                 document.getElementById('chatsPanel').classList.add('active');
                 loadUsers();
-            } else if (panel === 'groups') {
-                document.querySelectorAll('.nav-tab')[1].classList.add('active');
-                document.getElementById('groupsPanel').classList.add('active');
-                loadGroups();
             } else {
-                document.querySelectorAll('.nav-tab')[2].classList.add('active');
-                document.getElementById('notesPanel').classList.add('active');
-                loadNotes();
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
+                document.getElementById('gamesPanel').classList.add('active');
             }
         }
         
@@ -345,12 +352,11 @@
             else {
                 currentUser = data;
                 document.getElementById('myName').innerText = data.username;
-                document.getElementById('myWins').innerText = data.wins || 0;
                 if (data.avatar) document.getElementById('myAvatar').src = data.avatar + '?t=' + Date.now();
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 connectSocket();
-                loadUsers(); loadGroups(); loadNotes();
+                loadUsers();
             }
         }
         
@@ -382,11 +388,8 @@
                 container.innerHTML = '<div style="padding:20px;text-align:center;opacity:0.6">Нет пользователей</div>';
             } else {
                 container.innerHTML = data.users.map(u => `
-                    <div class="user-item" onclick="openChat('user', '${u.id}', '${u.username}')">
-                        <div style="display:flex; align-items:center; gap:8px">
-                            <img src="${u.avatar || '/avatars/default.png'}" class="user-avatar-small" onerror="this.src='/avatars/default.png'">
-                            <div><span class="online-dot"></span>${u.username} ${u.wins ? `<span class="wins-badge">🏆${u.wins}</span>` : ''}</div>
-                        </div>
+                    <div class="user-item" onclick="selectUser('${u.id}', '${u.username}')">
+                        <div><span class="online-dot"></span>${u.username}</div>
                         <div>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button>
@@ -397,73 +400,10 @@
             }
         }
         
-        // Группы
-        async function loadGroups() {
-            const res = await fetch(`/api/groups/${currentUser.userId}`);
-            const data = await res.json();
-            const container = document.getElementById('groupsContainer');
-            if (!data.groups || data.groups.length === 0) {
-                container.innerHTML = '<div style="padding:20px;text-align:center;opacity:0.6">Нет групп</div>';
-            } else {
-                container.innerHTML = data.groups.map(g => `
-                    <div class="group-item" onclick="openChat('group', '${g.id}', '${g.name}')">
-                        <div>👥 ${g.name} (${g.members} уч.)</div>
-                        <button class="call-btn" onclick="event.stopPropagation();joinGroup('${g.id}')">➕ Вступить</button>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        async function createGroup() {
-            const name = document.getElementById('newGroupName').value.trim();
-            if (!name) return;
-            const res = await fetch('/api/create-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, userId: currentUser.userId }) });
-            const data = await res.json();
-            if (data.success) { alert('Группа создана'); document.getElementById('newGroupName').value = ''; loadGroups(); }
-        }
-        
-        async function joinGroup(groupId) {
-            await fetch('/api/join-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId, userId: currentUser.userId }) });
-            socket.emit('group-join-notify', { groupId, userName: currentUser.username });
-            openChat('group', groupId, 'Группа');
-        }
-        
-        // Заметки
-        async function loadNotes() {
-            const res = await fetch(`/api/notes/${currentUser.userId}`);
-            const data = await res.json();
-            const container = document.getElementById('notesContainer');
-            if (!data.notes || data.notes.length === 0) {
-                container.innerHTML = '<div style="text-align:center;opacity:0.6">Нет заметок</div>';
-            } else {
-                container.innerHTML = data.notes.map(n => `
-                    <div class="note-item">
-                        <button class="delete-note" onclick="deleteNote('${n.id}')">🗑️</button>
-                        <div class="note-title">${escapeHtml(n.title)}</div>
-                        <div class="note-content">${escapeHtml(n.content)}</div>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        async function createNote() {
-            const title = document.getElementById('noteTitle').value.trim();
-            if (!title) return;
-            await fetch('/api/create-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.userId, title, content: '' }) });
-            document.getElementById('noteTitle').value = ''; loadNotes();
-        }
-        
-        async function deleteNote(noteId) {
-            if (confirm('Удалить заметку?')) {
-                await fetch('/api/delete-note', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ noteId }) });
-                loadNotes();
-            }
-        }
-        
-        function openChat(type, id, name) {
-            currentChat = { type, id, name };
-            document.getElementById('chatWith').innerHTML = type === 'user' ? `💬 ${name}` : `👥 ${name}`;
-            document.getElementById('callBtns').style.display = type === 'user' ? 'flex' : 'none';
+        function selectUser(userId, username) {
+            currentFriend = { id: userId, username };
+            document.getElementById('chatWith').innerHTML = `💬 Чат с ${username}`;
+            document.getElementById('callBtns').style.display = 'flex';
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesArea').innerHTML = '';
@@ -471,11 +411,8 @@
         }
         
         async function loadMessages() {
-            if (!currentChat) return;
-            let url = '';
-            if (currentChat.type === 'user') url = `/api/messages/${currentUser.userId}/${currentChat.id}`;
-            else url = `/api/group-messages/${currentChat.id}`;
-            const res = await fetch(url);
+            if (!currentFriend) return;
+            const res = await fetch(`/api/messages/${currentUser.userId}/${currentFriend.id}`);
             const data = await res.json();
             const container = document.getElementById('messagesArea');
             container.innerHTML = '';
@@ -484,7 +421,7 @@
             } else {
                 data.messages.forEach(msg => {
                     const isOwn = msg.from_id === currentUser.userId;
-                    addMessageToChat(msg.text, msg.file, msg.voice, msg.time, isOwn, msg.from_id, msg.username, msg.avatar);
+                    addMessageToChat(msg.text, msg.file, msg.voice, msg.time, isOwn);
                 });
             }
             scrollToBottom();
@@ -493,28 +430,18 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (!text || !currentChat || !socket) return;
+            if (!text || !currentFriend || !socket) return;
             
-            if (currentChat.type === 'user') {
-                socket.emit('message', { to: currentChat.id, text });
-                addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
-            } else {
-                socket.emit('group-message', { groupId: currentChat.id, text, fromName: currentUser.username });
-                addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
-            }
+            socket.emit('message', { to: currentFriend.id, text });
+            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true);
             input.value = '';
         }
         
-        function addMessageToChat(text, fileUrl, voiceUrl, time, isOwn, fromId, fromName, fromAvatar) {
+        function addMessageToChat(text, fileUrl, voiceUrl, time, isOwn) {
             const container = document.getElementById('messagesArea');
             if (container.querySelector('.no-chat')) container.innerHTML = '';
             const div = document.createElement('div');
             div.className = `message ${isOwn ? 'own' : 'other'}`;
-            
-            let senderHtml = '';
-            if (!isOwn && fromName) {
-                senderHtml = `<div class="message-sender"><img src="${fromAvatar || '/avatars/default.png'}" class="sender-avatar" onerror="this.src='/avatars/default.png'"> ${escapeHtml(fromName)}</div>`;
-            }
             
             let content = '';
             if (text) content = `<div class="message-text">${escapeHtml(text)}</div>`;
@@ -527,23 +454,14 @@
                 }
             }
             
-            div.innerHTML = `${senderHtml}${content}<div class="message-time">${time}</div>`;
-            container.appendChild(div);
-            scrollToBottom();
-        }
-        
-        function addSystemMessage(text) {
-            const container = document.getElementById('messagesArea');
-            const div = document.createElement('div');
-            div.className = 'system-message';
-            div.innerHTML = `🔔 ${text}`;
+            div.innerHTML = `${content}<div class="message-time">${time}</div>`;
             container.appendChild(div);
             scrollToBottom();
         }
         
         async function uploadFile(input) {
             const file = input.files[0];
-            if (!file || !currentChat || currentChat.type !== 'user') return;
+            if (!file || !currentFriend) return;
             
             const btn = document.getElementById('fileBtn');
             btn.innerHTML = '⏳';
@@ -553,13 +471,12 @@
             btn.innerHTML = '📎';
             const data = await res.json();
             if (data.success && socket) {
-                socket.emit('message', { to: currentChat.id, file: data.url, text: null });
-                addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
+                socket.emit('message', { to: currentFriend.id, file: data.url, text: null });
+                addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true);
             }
             input.value = '';
         }
         
-        // Голосовые
         async function startVoiceRecording() {
             if (isRecording) { stopVoiceRecording(); return; }
             try {
@@ -579,9 +496,9 @@
                     const res = await fetch('/api/voice', { method: 'POST', body: formData });
                     if (btn) btn.innerHTML = '🎤';
                     const data = await res.json();
-                    if (data.success && currentChat && currentChat.type === 'user') {
-                        socket.emit('message', { to: currentChat.id, voice: data.url, text: null });
-                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true, currentUser.userId, currentUser.username, currentUser.avatar);
+                    if (data.success && currentFriend && socket) {
+                        socket.emit('message', { to: currentFriend.id, voice: data.url, text: null });
+                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true);
                     }
                     stream.getTracks().forEach(t => t.stop());
                 };
@@ -598,24 +515,24 @@
         
         // Звонки
         function startCallTo(userId, userName, type) {
-            currentChat = { type: 'user', id: userId, name: userName };
+            currentFriend = { id: userId, username: userName };
             startCall(type);
         }
         
         async function startCall(type) {
-            if (!currentChat || currentChat.type !== 'user') { alert('Выберите пользователя'); return; }
+            if (!currentFriend) { alert('Выберите пользователя'); return; }
             try {
                 if (type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 peerConnection = new RTCPeerConnection(config);
                 localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
                 peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
-                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentChat.id, candidate: e.candidate }); };
+                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentFriend.id, candidate: e.candidate }); };
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
-                socket.emit('call-user', { toUserId: currentChat.id, offer, type, fromName: currentUser.username });
-                currentCall = { type, toId: currentChat.id };
-                document.getElementById('callerName').innerHTML = currentChat.name;
+                socket.emit('call-user', { toUserId: currentFriend.id, offer, type, fromName: currentUser.username });
+                currentCall = { type, toId: currentFriend.id };
+                document.getElementById('callerName').innerHTML = currentFriend.username;
                 document.getElementById('callStatus').innerHTML = 'Звоним...';
                 document.getElementById('callActions').style.display = 'flex';
                 document.getElementById('callControls').style.display = 'none';
@@ -655,24 +572,251 @@
         function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
         function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
         
-        // ИГРА
-        function initGameCanvas() {
+        // ИГРЫ
+        function openGame(game) {
+            gameType = game;
+            const modal = document.getElementById('gameModal');
+            modal.classList.add('active');
             gameCanvas = document.getElementById('gameCanvas');
-            if (!gameCanvas) return;
             gameCtx = gameCanvas.getContext('2d');
-            gameCanvas.width = 800;
-            gameCanvas.height = 500;
+            
+            if (game === 'pingpong') {
+                startPingPong();
+            } else if (game === 'snake') {
+                startSnake();
+            } else if (game === 'tetris') {
+                startTetris();
+            } else if (game === 'tic-tac-toe') {
+                startTicTacToe();
+            }
+        }
+        
+        // Пинг-Понг (одиночный)
+        function startPingPong() {
+            gameCanvas.width = 600;
+            gameCanvas.height = 400;
+            let ball = { x: 300, y: 200, vx: 3, vy: 2 };
+            let paddleY = 150;
+            let score = 0;
+            let aiPaddle = 150;
+            
+            function draw() {
+                if (!gameCtx) return;
+                gameCtx.fillStyle = '#000';
+                gameCtx.fillRect(0, 0, 600, 400);
+                
+                gameCtx.fillStyle = '#fff';
+                gameCtx.fillRect(10, paddleY, 10, 80);
+                gameCtx.fillRect(580, aiPaddle, 10, 80);
+                
+                gameCtx.beginPath();
+                gameCtx.arc(ball.x, ball.y, 6, 0, Math.PI * 2);
+                gameCtx.fill();
+                
+                gameCtx.font = '20px Arial';
+                gameCtx.fillText('Score: ' + score, 250, 30);
+                
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                
+                if (ball.y <= 0 || ball.y >= 400) ball.vy = -ball.vy;
+                
+                if (ball.x <= 20 && ball.x >= 15 && ball.y >= paddleY && ball.y <= paddleY + 80) {
+                    ball.vx = -ball.vx;
+                    score++;
+                }
+                
+                if (ball.x >= 580 && ball.x <= 585 && ball.y >= aiPaddle && ball.y <= aiPaddle + 80) {
+                    ball.vx = -ball.vx;
+                }
+                
+                if (ball.x <= 0) {
+                    score = Math.max(0, score - 1);
+                    ball = { x: 300, y: 200, vx: 3, vy: 2 };
+                }
+                if (ball.x >= 600) {
+                    alert('Победа! Счёт: ' + score);
+                    closeGame();
+                    return;
+                }
+                
+                aiPaddle += (ball.y - (aiPaddle + 40)) * 0.05;
+                aiPaddle = Math.max(0, Math.min(aiPaddle, 320));
+                
+                requestAnimationFrame(draw);
+            }
+            
+            gameCanvas.addEventListener('mousemove', (e) => {
+                const rect = gameCanvas.getBoundingClientRect();
+                let y = (e.clientY - rect.top) * (400 / rect.height);
+                paddleY = Math.max(0, Math.min(y, 320));
+            });
+            
+            draw();
+        }
+        
+        // Змейка
+        function startSnake() {
+            gameCanvas.width = 400;
+            gameCanvas.height = 400;
+            let snake = [{x: 200, y: 200}];
+            let food = {x: 100, y: 100};
+            let dir = {x: 20, y: 0};
+            let score = 0;
+            
+            function draw() {
+                if (!gameCtx) return;
+                gameCtx.fillStyle = '#000';
+                gameCtx.fillRect(0, 0, 400, 400);
+                
+                gameCtx.fillStyle = '#0f0';
+                snake.forEach(segment => {
+                    gameCtx.fillRect(segment.x, segment.y, 18, 18);
+                });
+                
+                gameCtx.fillStyle = '#f00';
+                gameCtx.fillRect(food.x, food.y, 18, 18);
+                
+                gameCtx.font = '20px Arial';
+                gameCtx.fillStyle = '#fff';
+                gameCtx.fillText('Score: ' + score, 10, 30);
+                
+                let head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+                
+                if (head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 400) {
+                    alert('Game Over! Score: ' + score);
+                    closeGame();
+                    return;
+                }
+                
+                snake.unshift(head);
+                
+                if (Math.abs(head.x - food.x) < 10 && Math.abs(head.y - food.y) < 10) {
+                    score++;
+                    food = {x: Math.floor(Math.random() * 380 / 20) * 20, y: Math.floor(Math.random() * 380 / 20) * 20};
+                } else {
+                    snake.pop();
+                }
+                
+                for (let i = 1; i < snake.length; i++) {
+                    if (snake[i].x === head.x && snake[i].y === head.y) {
+                        alert('Game Over! Score: ' + score);
+                        closeGame();
+                        return;
+                    }
+                }
+                
+                setTimeout(() => requestAnimationFrame(draw), 100);
+            }
+            
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' && dir.y === 0) dir = {x: 0, y: -20};
+                if (e.key === 'ArrowDown' && dir.y === 0) dir = {x: 0, y: 20};
+                if (e.key === 'ArrowLeft' && dir.x === 0) dir = {x: -20, y: 0};
+                if (e.key === 'ArrowRight' && dir.x === 0) dir = {x: 20, y: 0};
+            });
+            
+            draw();
+        }
+        
+        // Тетрис (упрощённый)
+        function startTetris() {
+            gameCanvas.width = 300;
+            gameCanvas.height = 600;
+            gameCtx.fillStyle = '#000';
+            gameCtx.fillRect(0, 0, 300, 600);
+            gameCtx.fillStyle = '#fff';
+            gameCtx.font = '20px Arial';
+            gameCtx.fillText('Тетрис - используй стрелки', 20, 300);
+            setTimeout(() => {
+                alert('Тетрис в разработке');
+                closeGame();
+            }, 2000);
+        }
+        
+        // Крестики-Нолики
+        function startTicTacToe() {
+            gameCanvas.width = 300;
+            gameCanvas.height = 300;
+            let board = Array(9).fill(null);
+            let turn = 'X';
+            let gameOver = false;
+            
+            function draw() {
+                if (!gameCtx) return;
+                gameCtx.fillStyle = '#fff';
+                gameCtx.fillRect(0, 0, 300, 300);
+                gameCtx.strokeStyle = '#000';
+                gameCtx.lineWidth = 2;
+                for (let i = 1; i < 3; i++) {
+                    gameCtx.beginPath();
+                    gameCtx.moveTo(i * 100, 0);
+                    gameCtx.lineTo(i * 100, 300);
+                    gameCtx.stroke();
+                    gameCtx.beginPath();
+                    gameCtx.moveTo(0, i * 100);
+                    gameCtx.lineTo(300, i * 100);
+                    gameCtx.stroke();
+                }
+                
+                gameCtx.font = '60px Arial';
+                gameCtx.fillStyle = '#000';
+                for (let i = 0; i < 9; i++) {
+                    if (board[i]) {
+                        let x = (i % 3) * 100 + 35;
+                        let y = Math.floor(i / 3) * 100 + 70;
+                        gameCtx.fillText(board[i], x, y);
+                    }
+                }
+            }
+            
+            function checkWinner() {
+                const lines = [
+                    [0,1,2], [3,4,5], [6,7,8],
+                    [0,3,6], [1,4,7], [2,5,8],
+                    [0,4,8], [2,4,6]
+                ];
+                for (let line of lines) {
+                    if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
+                        return board[line[0]];
+                    }
+                }
+                if (board.every(cell => cell !== null)) return 'tie';
+                return null;
+            }
+            
+            gameCanvas.addEventListener('click', (e) => {
+                if (gameOver) return;
+                const rect = gameCanvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / rect.width * 3);
+                const y = Math.floor((e.clientY - rect.top) / rect.height * 3);
+                const idx = y * 3 + x;
+                if (board[idx]) return;
+                board[idx] = turn;
+                draw();
+                const winner = checkWinner();
+                if (winner) {
+                    gameOver = true;
+                    if (winner === 'tie') alert('Ничья!');
+                    else alert(`Победил ${winner}!`);
+                    setTimeout(() => closeGame(), 2000);
+                    return;
+                }
+                turn = turn === 'X' ? 'O' : 'X';
+            });
+            
+            draw();
         }
         
         function inviteToGameUser(userId, userName) {
-            if (!currentChat || currentChat.id !== userId) {
-                currentChat = { type: 'user', id: userId, name: userName };
+            if (!currentFriend || currentFriend.id !== userId) {
+                currentFriend = { id: userId, username: userName };
             }
             inviteToGame();
         }
         
         function inviteToGame() {
-            if (!currentChat || currentChat.type !== 'user') {
+            if (!currentFriend) {
                 alert('Выберите пользователя для игры');
                 return;
             }
@@ -681,108 +825,75 @@
                 return;
             }
             gameInviteSent = true;
-            socket.emit('invite-game', { toUserId: currentChat.id, fromName: currentUser.username });
-            alert(`Приглашение отправлено ${currentChat.name}`);
+            socket.emit('invite-game', { toUserId: currentFriend.id, fromName: currentUser.username });
+            alert(`Приглашение отправлено ${currentFriend.username}`);
             setTimeout(() => { gameInviteSent = false; }, 30000);
         }
         
-        function startGame(roomId, opponent) {
+        function startMultiplayerGame(roomId, opponent) {
             gameRoomId = roomId;
             gameOpponent = opponent;
             gameActive = true;
-            gamePaddleY = 200;
+            gamePaddleY = 150;
+            gameBall = { x: 300, y: 200, vx: 3, vy: 2 };
+            gameScores = { me: 0, opponent: 0 };
             
             const modal = document.getElementById('gameModal');
-            if (modal) modal.classList.add('active');
-            initGameCanvas();
+            modal.classList.add('active');
+            gameCanvas = document.getElementById('gameCanvas');
+            gameCtx = gameCanvas.getContext('2d');
+            gameCanvas.width = 600;
+            gameCanvas.height = 400;
             
             const handleMouseMove = (e) => {
-                if (!gameActive || !gameCanvas) return;
+                if (!gameActive) return;
                 const rect = gameCanvas.getBoundingClientRect();
-                const scaleY = gameCanvas.height / rect.height;
-                let y = (e.clientY - rect.top) * scaleY;
-                y = Math.max(0, Math.min(y, gameCanvas.height - 100));
-                gamePaddleY = y;
+                let y = (e.clientY - rect.top) * (400 / rect.height);
+                gamePaddleY = Math.max(0, Math.min(y, 320));
                 if (socket && gameRoomId) {
                     socket.emit('game-move', { roomId: gameRoomId, playerId: currentUser.userId, y: gamePaddleY });
                 }
             };
-            
-            gameCanvas.removeEventListener('mousemove', handleMouseMove);
             gameCanvas.addEventListener('mousemove', handleMouseMove);
             
-            function drawGame(state) {
+            function draw() {
                 if (!gameCtx || !gameActive) return;
                 gameCtx.fillStyle = '#000';
-                gameCtx.fillRect(0, 0, 800, 500);
+                gameCtx.fillRect(0, 0, 600, 400);
                 gameCtx.strokeStyle = '#fff';
-                gameCtx.setLineDash([10, 10]);
-                gameCtx.beginPath(); gameCtx.moveTo(400, 0); gameCtx.lineTo(400, 500); gameCtx.stroke();
-                gameCtx.setLineDash([]);
+                gameCtx.beginPath(); gameCtx.moveTo(300, 0); gameCtx.lineTo(300, 400); gameCtx.stroke();
                 gameCtx.fillStyle = '#fff';
-                gameCtx.fillRect(10, gamePaddleY, 10, 100);
-                if (state && state.paddles && state.paddles[gameOpponent] !== undefined) {
-                    gameCtx.fillRect(780, state.paddles[gameOpponent], 10, 100);
+                gameCtx.fillRect(10, gamePaddleY, 10, 80);
+                if (typeof gamePaddleRight !== 'undefined') {
+                    gameCtx.fillRect(580, gamePaddleRight, 10, 80);
                 }
-                if (state && state.ball) {
-                    gameCtx.beginPath(); gameCtx.arc(state.ball.x, state.ball.y, 8, 0, Math.PI * 2); gameCtx.fill();
-                }
-                gameCtx.font = '30px Arial';
-                let myScore = 0, oppScore = 0;
-                if (state && state.scores) {
-                    myScore = state.scores[currentUser.userId] || 0;
-                    oppScore = state.scores[gameOpponent] || 0;
-                }
-                gameCtx.fillText(myScore, 350, 50);
-                gameCtx.fillText(oppScore, 430, 50);
+                gameCtx.beginPath(); gameCtx.arc(gameBall.x, gameBall.y, 6, 0, Math.PI * 2); gameCtx.fill();
+                gameCtx.font = '20px Arial';
+                gameCtx.fillText(gameScores.me, 250, 30);
+                gameCtx.fillText(gameScores.opponent, 330, 30);
+                requestAnimationFrame(draw);
             }
-            
-            socket.off('game-state'); socket.off('game-over');
-            socket.on('game-state', (state) => { if (gameActive) drawGame(state); });
-            socket.on('game-over', (data) => {
-                if (gameActive) {
-                    if (data.winner === currentUser.userId) {
-                        alert(`🎉 Вы победили! +1 победа`);
-                        document.getElementById('myWins').innerText = data.newWins;
-                    } else { alert(`😢 Вы проиграли`); }
-                    closeGame();
-                }
-            });
-            drawGame(null);
-        }
-        
-        function closeGame() {
-            gameActive = false; gameInviteSent = false;
-            if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
-            gameRoomId = null; gameOpponent = null;
-            const modal = document.getElementById('gameModal');
-            if (modal) modal.classList.remove('active');
-            socket.off('game-state'); socket.off('game-over');
+            draw();
         }
         
         function openImage(url) { document.getElementById('viewImage').src = url; document.getElementById('imageModal').classList.add('active'); }
         function closeImageViewer() { document.getElementById('imageModal').classList.remove('active'); }
         function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
+        function closeGame() { 
+            gameActive = false;
+            gameInviteSent = false;
+            if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
+            gameRoomId = null;
+            document.getElementById('gameModal').classList.remove('active');
+        }
         
         function connectSocket() {
             socket = io();
             socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar });
             
             socket.on('new-message', (data) => {
-                if (currentChat && currentChat.type === 'user' && data.from === currentChat.id) {
-                    addMessageToChat(data.text, data.file, data.voice, data.time, false, data.from, null, null);
-                }
-            });
-            
-            socket.on('new-group-message', (data) => {
-                if (currentChat && currentChat.type === 'group' && data.groupId === currentChat.id) {
-                    addMessageToChat(data.text, null, null, data.time, false, data.from, data.fromName, null);
-                }
-            });
-            
-            socket.on('system-message', (data) => {
-                if (currentChat && currentChat.type === 'group' && data.groupId === currentChat.id) {
-                    addSystemMessage(data.text);
+                if (currentFriend && data.from === currentFriend.id) {
+                    addMessageToChat(data.text, data.file, data.voice, data.time, false);
                 }
             });
             
@@ -803,6 +914,7 @@
             socket.on('ice-candidate', async (data) => { if (peerConnection) { try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {} } });
             socket.on('call-ended', () => endCall());
             
+            // Игра
             socket.on('game-invite', (data) => {
                 if (confirm(`${data.fromName} приглашает вас сыграть в Пинг-Понг! Принять?`)) {
                     socket.emit('accept-game', { fromId: data.fromId, toId: currentUser.userId });
@@ -810,14 +922,28 @@
                     socket.emit('game-decline', { toId: data.fromId });
                 }
             });
-            socket.on('game-start', (data) => { startGame(data.roomId, data.opponent); });
+            socket.on('game-start', (data) => { startMultiplayerGame(data.roomId, data.opponent); });
             socket.on('game-declined', () => { alert('Собеседник отклонил приглашение'); gameInviteSent = false; });
             socket.on('game-error', (data) => { alert(data.message); gameInviteSent = false; });
+            socket.on('game-state', (state) => {
+                if (gameActive) {
+                    gameBall = state.ball;
+                    gamePaddleRight = state.paddles[gameOpponent];
+                    gameScores = state.scores;
+                }
+            });
+            socket.on('game-over', (data) => {
+                if (gameActive) {
+                    if (data.winner === currentUser.userId) alert('🎉 Вы победили!');
+                    else alert('😢 Вы проиграли');
+                    closeGame();
+                }
+            });
         }
         
         document.getElementById('messageInput').addEventListener('input', () => {
-            if (socket && currentChat && currentChat.type === 'user') {
-                socket.emit('typing', { to: currentChat.id, name: currentUser.username });
+            if (socket && currentFriend) {
+                socket.emit('typing', { to: currentFriend.id, name: currentUser.username });
             }
         });
         
