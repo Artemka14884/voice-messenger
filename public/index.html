@@ -7,12 +7,11 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* Темы */
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; height: 100vh; overflow: hidden; transition: all 0.3s ease; }
         body.dark { background: #1a1a2e; color: #fff; }
         body.dark .sidebar { background: #16213e; }
         body.dark .user-header { background: #0f3460; }
-        body.dark .user-item, body.dark .group-item, body.dark .channel-item, body.dark .note-item { background: #0f3460; }
+        body.dark .user-item, body.dark .group-item, body.dark .note-item { background: #0f3460; }
         body.dark .chat-area { background: #1a1a2e; }
         body.dark .chat-header, body.dark .input-area, body.dark .typing { background: #16213e; color: #fff; border-color: #0f3460; }
         body.dark .message.other { background: #0f3460; color: #fff; }
@@ -22,7 +21,7 @@
         body.light { background: #f0f2f5; color: #1a1a2e; }
         body.light .sidebar { background: #fff; }
         body.light .user-header { background: #667eea; color: #fff; }
-        body.light .user-item, body.light .group-item, body.light .channel-item, body.light .note-item { background: #f0f2f5; color: #1a1a2e; }
+        body.light .user-item, body.light .group-item, body.light .note-item { background: #f0f2f5; color: #1a1a2e; }
         body.light .chat-area { background: #fff; }
         body.light .chat-header, body.light .input-area, body.light .typing { background: #fff; color: #1a1a2e; }
         body.light .message.other { background: #f0f2f5; }
@@ -30,12 +29,11 @@
         body.blue { background: #0d47a1; color: #fff; }
         body.blue .sidebar { background: #1565c0; }
         body.blue .user-header { background: #0d47a1; }
-        body.blue .user-item, body.blue .group-item, body.blue .channel-item, body.blue .note-item { background: #1565c0; }
+        body.blue .user-item, body.blue .group-item, body.blue .note-item { background: #1565c0; }
         body.blue .chat-area { background: #0d47a1; }
         body.blue .chat-header, body.blue .input-area, body.blue .typing { background: #1565c0; color: #fff; }
         body.blue .message.other { background: #1565c0; }
         
-        /* Логин */
         .login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: linear-gradient(135deg,#667eea,#764ba2); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .login-box { background: rgba(255,255,255,0.95); padding: 40px; border-radius: 30px; width: 400px; text-align: center; backdrop-filter: blur(10px); }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; }
@@ -50,7 +48,6 @@
         .captcha-code { font-size: 28px; font-weight: bold; letter-spacing: 8px; background: #fff; padding: 10px; border-radius: 8px; font-family: monospace; }
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
         
-        /* Основной интерфейс */
         .app { display: flex; height: 100vh; }
         @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
         
@@ -74,14 +71,13 @@
         .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
         .panel.active { display: block; }
         
-        .user-item, .group-item, .channel-item, .note-item { padding: 10px; margin: 5px 0; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
+        .user-item, .group-item, .note-item { padding: 10px; margin: 5px 0; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
         .user-item:hover, .group-item:hover { transform: translateX(5px); }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
         .call-btn { padding: 5px 10px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
         .invite-link { padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; background: rgba(0,0,0,0.2); }
         .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
         
-        /* Чат */
         .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .chat-header { padding: 15px; border-bottom: 1px solid; display: flex; justify-content: space-between; align-items: center; }
         .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -120,7 +116,6 @@
         .reaction-picker { position: fixed; background: white; border-radius: 40px; padding: 8px 15px; display: flex; gap: 12px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         .reaction-option { font-size: 24px; cursor: pointer; padding: 5px; }
         
-        /* Модалка звонка */
         .call-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2000; }
         .call-modal.active { display: flex; }
         .call-card { background: #1a1a2e; border-radius: 40px; padding: 40px; width: 90%; max-width: 350px; text-align: center; color: white; }
@@ -135,14 +130,12 @@
         .video-box { width: 45%; min-width: 200px; background: #000; border-radius: 10px; overflow: hidden; }
         .video-box video { width: 100%; }
         
-        /* Игра */
         .game-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2500; }
         .game-modal.active { display: flex; }
         .game-container { background: #1a1a2e; border-radius: 20px; padding: 20px; text-align: center; }
-        canvas { background: #000; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        canvas { background: #000; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: none; }
         .game-controls { margin-top: 15px; display: flex; gap: 20px; justify-content: center; }
         .game-btn { padding: 10px 20px; background: #4CAF50; border: none; border-radius: 10px; color: white; cursor: pointer; }
-        .game-invite { background: #FF9800; }
         
         .image-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
         .image-modal.active { display: flex; }
@@ -260,7 +253,6 @@
         </div>
     </div>
 
-    <!-- Игра -->
     <div id="gameModal" class="game-modal">
         <div class="game-container">
             <canvas id="gameCanvas" width="800" height="500"></canvas>
@@ -311,11 +303,10 @@
         // Игра
         let gameActive = false;
         let gameCanvas, gameCtx;
-        let gameAnimationId;
         let gameRoomId = null;
         let gameOpponent = null;
         let gamePaddleY = 200;
-        let gameScores = { me: 0, opponent: 0 };
+        let gameInviteSent = false;
         
         const config = {
             iceServers: [
@@ -329,7 +320,6 @@
         const reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
         const emojis = ['😀','😂','😍','😎','😢','😡','👍','❤️','🔥','🎉','✨','💀','🥰','😘','😁','🤣','😊','🙏','💪','👋'];
         
-        // Капча
         function generateCaptcha() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
             let captcha = '';
@@ -415,6 +405,7 @@
                 initEmojiPicker();
                 const savedTheme = localStorage.getItem('theme');
                 if (savedTheme) changeTheme(savedTheme);
+                else changeTheme('dark');
             }
         }
         
@@ -563,7 +554,7 @@
             scrollToBottom();
         }
         
-        function addSystemMessage(text, isGroup) {
+        function addSystemMessage(text) {
             const container = document.getElementById('messagesArea');
             const div = document.createElement('div');
             div.className = 'system-message';
@@ -663,6 +654,14 @@
         function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
         
         // Игра
+        function initGameCanvas() {
+            gameCanvas = document.getElementById('gameCanvas');
+            if (!gameCanvas) return;
+            gameCtx = gameCanvas.getContext('2d');
+            gameCanvas.width = 800;
+            gameCanvas.height = 500;
+        }
+        
         function inviteToGameUser(userId, userName) {
             if (!currentChat || currentChat.id !== userId) {
                 currentChat = { type: 'user', id: userId, name: userName };
@@ -671,17 +670,27 @@
         }
         
         function inviteToGame() {
-            if (!currentChat || currentChat.type !== 'user') { alert('Выберите пользователя'); return; }
+            if (!currentChat || currentChat.type !== 'user') {
+                alert('Выберите пользователя для игры');
+                return;
+            }
+            if (gameInviteSent) {
+                alert('Приглашение уже отправлено');
+                return;
+            }
+            gameInviteSent = true;
             const inviteId = Date.now().toString();
-            socket.emit('invite-game', { toUserId: currentChat.id, fromName: currentUser.username, inviteId });
-            alert(`Приглашение отправлено ${currentChat.name}`);
-        }
-        
-        function initGameCanvas() {
-            gameCanvas = document.getElementById('gameCanvas');
-            gameCtx = gameCanvas.getContext('2d');
-            gameCanvas.width = 800;
-            gameCanvas.height = 500;
+            socket.emit('invite-game', { 
+                toUserId: currentChat.id, 
+                fromName: currentUser.username, 
+                inviteId,
+                fromId: currentUser.userId
+            });
+            alert(`Приглашение отправлено ${currentChat.name}. Ждите ответа...`);
+            
+            setTimeout(() => {
+                gameInviteSent = false;
+            }, 30000);
         }
         
         function startGame(roomId, opponent, opponentName) {
@@ -689,29 +698,37 @@
             gameOpponent = opponent;
             gameActive = true;
             gamePaddleY = 200;
-            gameScores = { me: 0, opponent: 0 };
-            document.getElementById('gameModal').classList.add('active');
+            
+            const modal = document.getElementById('gameModal');
+            if (modal) modal.classList.add('active');
+            
             initGameCanvas();
             
-            // Обработка движения мыши
             const handleMouseMove = (e) => {
-                if (!gameActive) return;
+                if (!gameActive || !gameCanvas) return;
                 const rect = gameCanvas.getBoundingClientRect();
                 const scaleY = gameCanvas.height / rect.height;
                 let y = (e.clientY - rect.top) * scaleY;
                 y = Math.max(0, Math.min(y, gameCanvas.height - 100));
                 gamePaddleY = y;
-                socket.emit('game-move', { roomId: gameRoomId, playerId: currentUser.userId, y: gamePaddleY });
+                if (socket && gameRoomId) {
+                    socket.emit('game-move', { 
+                        roomId: gameRoomId, 
+                        playerId: currentUser.userId, 
+                        y: gamePaddleY 
+                    });
+                }
             };
+            
+            gameCanvas.removeEventListener('mousemove', handleMouseMove);
             gameCanvas.addEventListener('mousemove', handleMouseMove);
             
-            // Рисуем игру
             function drawGame(state) {
-                if (!gameCtx) return;
+                if (!gameCtx || !gameActive) return;
+                
                 gameCtx.fillStyle = '#000';
                 gameCtx.fillRect(0, 0, 800, 500);
                 
-                // Центральная линия
                 gameCtx.strokeStyle = '#fff';
                 gameCtx.setLineDash([10, 10]);
                 gameCtx.beginPath();
@@ -720,16 +737,15 @@
                 gameCtx.stroke();
                 gameCtx.setLineDash([]);
                 
-                // Ракетки
                 gameCtx.fillStyle = '#fff';
                 gameCtx.fillRect(10, gamePaddleY, 10, 100);
-                if (state && state.paddles && state.paddles[gameOpponent]) {
+                
+                if (state && state.paddles && state.paddles[gameOpponent] !== undefined) {
                     gameCtx.fillRect(780, state.paddles[gameOpponent], 10, 100);
                 } else {
                     gameCtx.fillRect(780, 200, 10, 100);
                 }
                 
-                // Мяч
                 if (state && state.ball) {
                     gameCtx.beginPath();
                     gameCtx.arc(state.ball.x, state.ball.y, 8, 0, Math.PI * 2);
@@ -737,34 +753,35 @@
                     gameCtx.fill();
                 }
                 
-                // Счёт
                 gameCtx.font = '30px Arial';
                 gameCtx.fillStyle = '#fff';
-                let myScore = gameScores.me;
-                let oppScore = gameScores.opponent;
+                let myScore = 0;
+                let oppScore = 0;
                 if (state && state.scores) {
                     myScore = state.scores[currentUser.userId] || 0;
                     oppScore = state.scores[gameOpponent] || 0;
-                    gameScores.me = myScore;
-                    gameScores.opponent = oppScore;
-                    document.getElementById('myWins').innerText = myScore;
                 }
                 gameCtx.fillText(myScore, 350, 50);
                 gameCtx.fillText(oppScore, 430, 50);
             }
+            
+            socket.off('game-state');
+            socket.off('game-over');
             
             socket.on('game-state', (state) => {
                 if (gameActive) drawGame(state);
             });
             
             socket.on('game-over', (data) => {
-                if (data.winner === currentUser.userId) {
-                    alert(`🎉 Вы победили! +1 победа`);
-                    document.getElementById('myWins').innerText = data.newWins;
-                } else {
-                    alert(`😢 Вы проиграли`);
+                if (gameActive) {
+                    if (data.winner === currentUser.userId) {
+                        alert(`🎉 Вы победили! +1 победа`);
+                        document.getElementById('myWins').innerText = data.newWins || (parseInt(document.getElementById('myWins').innerText) + 1);
+                    } else {
+                        alert(`😢 Вы проиграли`);
+                    }
+                    closeGame();
                 }
-                closeGame();
             });
             
             drawGame(null);
@@ -772,9 +789,14 @@
         
         function closeGame() {
             gameActive = false;
-            if (gameRoomId) socket.emit('game-end', { roomId: gameRoomId });
+            gameInviteSent = false;
+            if (gameRoomId && socket) {
+                socket.emit('game-end', { roomId: gameRoomId });
+            }
             gameRoomId = null;
-            document.getElementById('gameModal').classList.remove('active');
+            gameOpponent = null;
+            const modal = document.getElementById('gameModal');
+            if (modal) modal.classList.remove('active');
             socket.off('game-state');
             socket.off('game-over');
         }
@@ -856,6 +878,10 @@
                 }
             });
             
+            socket.on('message-sent', (data) => {
+                // Сообщение уже добавлено локально
+            });
+            
             socket.on('new-group-message', (data) => {
                 if (currentChat && currentChat.type === 'group' && data.groupId === currentChat.id) {
                     addMessageToChat(data.text, data.file, data.fileType, data.voice, data.time, false, data.id, null, null);
@@ -913,11 +939,25 @@
             // Игра
             socket.on('game-invite', (data) => {
                 if (confirm(`${data.fromName} приглашает вас сыграть в Пинг-Понг! Принять?`)) {
-                    socket.emit('accept-game', { fromId: data.fromId, toId: currentUser.userId, toName: currentUser.username });
+                    socket.emit('accept-game', { 
+                        fromId: data.fromId, 
+                        toId: currentUser.userId, 
+                        toName: currentUser.username,
+                        fromName: data.fromName
+                    });
+                    gameInviteSent = false;
+                } else {
+                    socket.emit('game-decline', { toId: data.fromId });
                 }
             });
+            
             socket.on('game-start', (data) => {
                 startGame(data.roomId, data.opponent, data.opponentName);
+            });
+            
+            socket.on('game-declined', () => {
+                alert('Собеседник отклонил приглашение');
+                gameInviteSent = false;
             });
         }
         
