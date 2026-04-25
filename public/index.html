@@ -303,7 +303,6 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background-image: url('https://i.imgur.com/3j6Lr6U.jpg'); /* дефолт обои */
             background-size: cover;
             background-position: center;
             position: relative;
@@ -351,18 +350,17 @@
             border-radius: 20px;
             position: relative;
             word-wrap: break-word;
+            color: white !important;
         }
 
         .message.own {
             background: #6c5ce7;
-            color: white;
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
 
         .message.other {
             background: #24242c;
-            color: white;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
@@ -402,6 +400,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            color: white;
         }
 
         /* Ввод */
@@ -433,6 +432,22 @@
             color: white;
             font-size: 18px;
             cursor: pointer;
+        }
+
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #6c5ce7;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            z-index: 4000;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
         }
 
         /* Модалки */
@@ -528,11 +543,15 @@
             </div>
             <div id="settingsPanel" class="panel hidden">
                 <div style="padding: 16px;">
-                    <h4>Обои чата</h4>
-                    <input type="color" id="wallColor" value="#1a1a2e" style="width:100%; margin-bottom:16px;">
-                    <h4>Анонимный режим</h4>
-                    <label><input type="checkbox" id="anonymousMode"> Скрыть ник (#Anonim#)</label>
-                    <h4 style="margin-top:16px">Заблокированные</h4>
+                    <h4 style="color:white">Обои чата</h4>
+                    <input type="color" id="wallColor" value="#1a1a2e" style="width:100%; margin-bottom:8px;">
+                    <button id="uploadWallpaperBtn" style="background:#2c2c34; border:none; padding:8px; border-radius:20px; margin-bottom:8px; color:white;">📁 Загрузить свои обои</button>
+                    <input type="text" id="wallpaperUrl" placeholder="Или вставьте ссылку на изображение" style="width:100%; background:#121214; border:none; padding:8px; border-radius:30px; margin-bottom:8px; color:white;">
+                    <button id="applyWallLink" style="background:#6c5ce7; border:none; padding:8px; border-radius:30px; color:white;">Применить фон</button>
+
+                    <h4 style="margin-top:16px; color:white">Анонимный режим</h4>
+                    <label style="color:white"><input type="checkbox" id="anonymousMode"> Скрыть ник (#Anonim#)</label>
+                    <h4 style="margin-top:16px; color:white">Заблокированные</h4>
                     <div id="blockedList"></div>
                 </div>
             </div>
@@ -543,7 +562,7 @@
             <div class="chat-header">
                 <div class="chat-header-left">
                     <div class="mini-avatar" id="chatAvatar"></div>
-                    <div><strong id="chatUsername">Выберите диалог</strong><div id="chatStatusIndicator"></div></div>
+                    <div><strong id="chatUsername" style="color:white">Выберите диалог</strong><div id="chatStatusIndicator" style="color:#aaa"></div></div>
                 </div>
                 <div class="call-actions">
                     <button id="audioCallBtn">🎤</button>
@@ -553,12 +572,16 @@
             <div id="pinnedMessagesBar" class="pinned-messages"></div>
             <div id="chatMessages" class="messages-area"></div>
             <div class="input-wrapper">
+                <button id="fileBtn" class="tool-btn">📎</button>
+                <button id="voiceRecordBtn" class="tool-btn">🎤</button>
                 <input type="text" id="msgInput" placeholder="Сообщение..." disabled>
                 <button id="sendMsgBtn" class="tool-btn" disabled>📤</button>
             </div>
         </div>
     </div>
 
+    <div id="notificationToast" class="notification-toast">Сообщение отправлено</div>
+    <input type="file" id="hiddenFileInput" style="display:none">
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // Основные переменные
@@ -567,10 +590,14 @@
         let pinnedStore = {}; // { chatId: [msgId] }
         let blockedUsers = new Set();
         let anonymousMode = false;
+        let mediaRecorder, audioChunks = [], isRecording = false;
 
         // DOM элементы
         const loginScreen = document.getElementById('loginScreen');
         const mainApp = document.getElementById('mainApp');
+        const toast = document.getElementById('notificationToast');
+
+        function showToast(text) { toast.innerText = text; toast.style.opacity = '1'; setTimeout(() => toast.style.opacity = '0', 2000); }
 
         // --- Капча ---
         let captchaText = '';
@@ -612,6 +639,7 @@
                 connectSocket();
                 loadUsersList();
                 loadNotes();
+                applyStoredWallpaper();
             }
         };
 
@@ -627,6 +655,29 @@
             else { alert('Регистрация успешна!'); document.getElementById('tabLoginBtn').click(); }
         };
 
+        // --- Обои ---
+        function setWallpaper(url) {
+            document.getElementById('chatMain').style.backgroundImage = `url(${url})`;
+            document.getElementById('chatMain').style.backgroundSize = 'cover';
+            localStorage.setItem('wallpaper', url);
+        }
+        document.getElementById('uploadWallpaperBtn').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (ev) => setWallpaper(ev.target.result);
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        };
+        document.getElementById('applyWallLink').onclick = () => {
+            const url = document.getElementById('wallpaperUrl').value.trim();
+            if(url) setWallpaper(url);
+        };
+        function applyStoredWallpaper() { const saved = localStorage.getItem('wallpaper'); if(saved) setWallpaper(saved); }
+
         // --- Сокет ---
         function connectSocket() {
             socket = io();
@@ -637,6 +688,7 @@
                     addMessageToDom(msg, msg.from === currentUser.userId);
                 }
                 saveMessageLocally(msg);
+                if(msg.from !== currentUser.userId && currentChatUser && msg.from === currentChatUser.id) showToast(`Новое сообщение от ${msg.fromName}`);
             });
             socket.on('typing', (data) => { if(currentChatUser && data.from === currentChatUser.id) showTyping(data.name); });
         }
@@ -655,10 +707,59 @@
             div.className = `message ${isOwn ? 'own' : 'other'}`;
             let showName = msg.fromName;
             if(anonymousMode && !isOwn) showName = '#Anonim#';
-            div.innerHTML = `<div class="message-sender">${showName}</div><div>${escapeHtml(msg.text)}</div><div class="message-time">${msg.time}</div>`;
+            let content = '';
+            if(msg.text) content = `<div>${escapeHtml(msg.text)}</div>`;
+            else if(msg.file) {
+                if(msg.fileType === 'image') content = `<img src="${msg.file}" style="max-width:200px; border-radius:12px;">`;
+                else content = `<a href="${msg.file}" download style="color:white">📎 Файл</a>`;
+            }
+            else if(msg.voice) content = `<audio controls src="${msg.voice}" style="max-width:180px"></audio>`;
+            div.innerHTML = `<div class="message-sender">${showName}</div>${content}<div class="message-time">${msg.time}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
+
+        // --- Файлы и голосовые ---
+        document.getElementById('fileBtn').onclick = () => { document.getElementById('hiddenFileInput').click(); };
+        document.getElementById('hiddenFileInput').onchange = async (e) => {
+            const file = e.target.files[0];
+            if(!file || !currentChatUser) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/upload-file', { method: 'POST', body: formData });
+            const data = await res.json();
+            if(data.success) {
+                socket.emit('message', { to: currentChatUser.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
+                showToast('Файл отправлен');
+            }
+        };
+
+        async function startVoiceRecording() {
+            if(isRecording) { if(mediaRecorder) mediaRecorder.stop(); return; }
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('voice', blob, 'voice.webm');
+                const res = await fetch('/api/voice', { method: 'POST', body: formData });
+                const data = await res.json();
+                if(data.success && currentChatUser) {
+                    socket.emit('message', { to: currentChatUser.id, voice: data.url, text: null });
+                    showToast('Голосовое отправлено');
+                }
+                stream.getTracks().forEach(t => t.stop());
+                isRecording = false;
+                document.getElementById('voiceRecordBtn').style.background = '#2c2c34';
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            document.getElementById('voiceRecordBtn').style.background = '#ff5e5e';
+            setTimeout(() => { if(mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }, 30000);
+        }
+        document.getElementById('voiceRecordBtn').onclick = startVoiceRecording;
 
         // --- Загрузка списка пользователей ---
         async function loadUsersList() {
@@ -673,7 +774,7 @@
                 <div class="user-card" data-id="${u.id}" data-name="${u.username}">
                     <div class="user-card-left">
                         <div class="mini-avatar"><img src="${u.avatar || '/uploads/default.png'}" style="width:100%"></div>
-                        <div><div class="user-card-name">${u.username}</div><div class="online-status">${u.online ? '🟢 онлайн' : '⚫ офлайн'}</div></div>
+                        <div><div class="user-card-name" style="color:white">${u.username}</div><div class="online-status">${u.online ? '🟢 онлайн' : '⚫ офлайн'}</div></div>
                     </div>
                     <div>
                         <button class="call-btn" data-id="${u.id}" data-name="${u.username}" data-type="audio">🎤</button>
@@ -681,7 +782,10 @@
                     </div>
                 </div>
             `).join('');
-            // вешаем события
+            attachUserEvents();
+        }
+
+        function attachUserEvents() {
             document.querySelectorAll('.user-card').forEach(card => {
                 card.addEventListener('click', (e) => {
                     if(e.target.classList.contains('call-btn')) return;
@@ -703,7 +807,7 @@
 
         function openChat(userId, username) {
             currentChatUser = { id: userId, name: username };
-            document.getElementById('chatUsername').innerText = username;
+            document.getElementById('chatUsername').innerHTML = username;
             document.getElementById('msgInput').disabled = false;
             document.getElementById('sendMsgBtn').disabled = false;
             document.getElementById('chatMessages').innerHTML = '';
@@ -722,32 +826,33 @@
             if(!text || !currentChatUser) return;
             socket.emit('message', { to: currentChatUser.id, text });
             document.getElementById('msgInput').value = '';
+            showToast('Сообщение отправлено');
         }
         document.getElementById('sendMsgBtn').onclick = sendMessage;
         document.getElementById('msgInput').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
 
         // --- Закреп сообщений (без ограничений) ---
-        function pinMessage(msgId) {
+        window.pinMessage = (msgId) => {
             if(!currentChatUser) return;
             if(!pinnedStore[currentChatUser.id]) pinnedStore[currentChatUser.id] = [];
             if(!pinnedStore[currentChatUser.id].includes(msgId)) pinnedStore[currentChatUser.id].push(msgId);
             renderPinnedMessages(currentChatUser.id);
-        }
+        };
 
         function renderPinnedMessages(chatId) {
             const bar = document.getElementById('pinnedMessagesBar');
             let pins = pinnedStore[chatId] || [];
-            bar.innerHTML = pins.map(pid => `<div class="pin-item" data-id="${pid}">📌 Закреплено <span style="font-size:10px">[x]</span></div>`).join('');
+            bar.innerHTML = pins.map(pid => `<div class="pin-item">📌 Закреплено</div>`).join('');
         }
 
         function loadPinnedMessages(chatId) { renderPinnedMessages(chatId); }
 
-        // --- Заметки (верхнее меню) ---
+        // --- Заметки ---
         async function loadNotes() {
             const res = await fetch(`/api/notes/${currentUser.userId}`);
             const data = await res.json();
             const container = document.getElementById('notesList');
-            container.innerHTML = data.notes.map(n => `<div style="background:#2c2c34; margin:6px 0; padding:8px; border-radius:14px;"><b>${escapeHtml(n.title)}</b><br>${escapeHtml(n.content)}</div>`).join('');
+            container.innerHTML = data.notes.map(n => `<div style="background:#2c2c34; margin:6px 0; padding:8px; border-radius:14px;color:white"><b>${escapeHtml(n.title)}</b><br>${escapeHtml(n.content)}</div>`).join('');
         }
         document.getElementById('createNoteBtn').onclick = async () => {
             const title = document.getElementById('noteTitle').value;
@@ -758,7 +863,7 @@
             loadNotes();
         };
 
-        // --- Настройки (аватарка, обои, анонимность)---
+        // --- Настройки ---
         document.getElementById('avatarUpload').onchange = async (e) => {
             const file = e.target.files[0];
             const formData = new FormData();
@@ -768,16 +873,12 @@
             const data = await res.json();
             if(data.success) document.getElementById('avatarImg').src = data.avatar;
         };
-        document.getElementById('wallColor').oninput = (e) => {
-            document.getElementById('chatMain').style.background = e.target.value;
-        };
-        document.getElementById('anonymousMode').onchange = (e) => {
-            anonymousMode = e.target.checked;
-        };
-        // --- Блокировка через три точки (имитация) ---
-        window.blockUser = (userId) => {
-            if(confirm('Заблокировать пользователя?')) blockedUsers.add(userId);
-        };
+        document.getElementById('anonymousMode').onchange = (e) => { anonymousMode = e.target.checked; };
+        document.getElementById('wallColor').oninput = (e) => { document.getElementById('chatMain').style.background = e.target.value; document.getElementById('chatMain').style.backgroundImage = 'none'; localStorage.removeItem('wallpaper'); };
+
+        // --- Заглушка звонков ---
+        window.startCall = (toId, toName, type) => { alert(`📞 ${type === 'audio' ? 'Аудиозвонок' : 'Видеозвонок'} для ${toName}`); };
+        function startCall(toId, toName, type) { alert(`📞 ${type} звонок для ${toName}`); }
 
         // --- Навигация панелей ---
         document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -789,10 +890,6 @@
                 if(btn.dataset.panel === 'notes') loadNotes();
             };
         });
-
-        // --- Фейковые звонки (заглушка работающая)---
-        window.startCall = (toId, toName, type) => { alert(`📞 ${type === 'audio' ? 'Аудиозвонок' : 'Видеозвонок'} для ${toName} (заглушка, full версия позже)`); };
-        function startCall(toId, toName, type) { alert(`📞 ${type} звонок для ${toName}`); }
 
         function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
         generateCaptcha();
