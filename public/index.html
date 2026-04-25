@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Мессенджер</title>
+    <title>Мессенджер - Крестики-Нолики</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
@@ -23,26 +23,26 @@
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
         
         .app { display: flex; height: 100vh; }
-        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
+        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 45%; } }
         
-        .sidebar { width: 300px; background: #16213e; color: white; display: flex; flex-direction: column; }
-        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; }
+        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; overflow-y: auto; }
+        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; }
         .user-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 2px solid #667eea; }
         .user-info { flex: 1; }
         .user-name { font-size: 16px; font-weight: bold; }
         .logout-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
         .nav-tabs { display: flex; background: #0f3460; padding: 5px; gap: 5px; }
-        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; }
+        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; transition: all 0.3s; }
         .nav-tab.active { background: #667eea; }
         .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
         .panel.active { display: block; }
         
-        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .user-item:hover, .group-item:hover { background: #1a1a4e; }
+        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
+        .user-item:hover, .group-item:hover { background: #1a1a4e; transform: translateX(5px); }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
         .call-btn { padding: 5px 8px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
-        .game-btn { background: #FF9800; }
+        .wins-badge { background: gold; color: #333; border-radius: 20px; padding: 2px 6px; font-size: 10px; margin-left: 5px; }
         
         .invite-link { background: #0f3460; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; }
         .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
@@ -51,15 +51,20 @@
         .create-group input { flex: 1; padding: 8px; border-radius: 10px; border: none; }
         .create-group button { background: #4CAF50; border: none; border-radius: 10px; padding: 8px 15px; color: white; cursor: pointer; }
         
+        .find-game-btn { width: 100%; padding: 15px; background: #FF9800; border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: all 0.3s; }
+        .find-game-btn:hover { transform: scale(1.02); background: #F57C00; }
+        .cancel-game-btn { background: #f44336; margin-top: 10px; }
+        
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
         .chat-header { background: white; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; }
+        .message { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
         .message.own { background: #667eea; color: white; align-self: flex-end; }
         .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .message-text { word-wrap: break-word; }
+        .message-text { font-size: 14px; }
         .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; }
+        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+        .sender-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
         
         .file-attachment { display: flex; align-items: center; gap: 8px; padding: 5px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
         .message-image { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; }
@@ -67,9 +72,9 @@
         .voice-play { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
         
         .typing { padding: 8px 15px; font-size: 12px; color: #666; font-style: italic; background: white; }
-        .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; }
+        .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; flex-wrap: wrap; }
         .input-main { display: flex; flex: 1; gap: 10px; align-items: center; }
-        .input-area input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 25px; }
+        .input-area input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 25px; font-size: 14px; }
         .input-area button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
         .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; }
         .recording { background: #f44336; color: white; animation: pulse 1s infinite; }
@@ -93,10 +98,11 @@
         .game-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2500; }
         .game-modal.active { display: flex; }
         .game-container { background: #1a1a2e; border-radius: 20px; padding: 20px; text-align: center; }
-        .game-board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; background: #fff; padding: 10px; border-radius: 10px; }
+        .game-board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; background: #fff; padding: 10px; border-radius: 10px; margin: 0 auto; }
         .game-cell { width: 100px; height: 100px; background: #2196F3; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; color: white; cursor: pointer; border-radius: 10px; transition: all 0.2s; }
         .game-cell:hover { background: #1976D2; transform: scale(1.02); }
         .game-info { margin-top: 15px; color: white; font-size: 18px; }
+        .game-countdown { font-size: 48px; font-weight: bold; color: #FF9800; margin: 20px; }
         .game-controls { margin-top: 15px; }
         .game-btn-close { padding: 10px 20px; background: #4CAF50; border: none; border-radius: 10px; color: white; cursor: pointer; }
         
@@ -106,6 +112,7 @@
         .close-image { position: absolute; top: 20px; right: 20px; background: white; width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; }
         
         .system-message { text-align: center; font-size: 11px; opacity: 0.6; padding: 5px; font-style: italic; }
+        .spam-warning { background: #f44336; color: white; text-align: center; padding: 5px; margin: 5px; border-radius: 5px; }
         
         .hidden { display: none; }
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; text-align: center; padding: 20px; }
@@ -114,7 +121,7 @@
 <body>
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
-            <h1>💬 Мессенджер</h1>
+            <h1>💬 Мессенджер + Крестики-Нолики</h1>
             <div><div class="tab active" onclick="showTab('login')">Вход</div><div class="tab" onclick="showTab('register')">Регистрация</div></div>
             
             <div id="loginForm" class="form active">
@@ -145,7 +152,7 @@
                 <img id="myAvatar" class="user-avatar" src="/avatars/default.png" onclick="document.getElementById('avatarInput').click()">
                 <div class="user-info">
                     <div class="user-name" id="myName"></div>
-                    <div>🟢 Онлайн</div>
+                    <div>🏆 Побед: <span id="myWins">0</span></div>
                 </div>
                 <button class="logout-btn" onclick="logout()">🚪</button>
             </div>
@@ -154,7 +161,7 @@
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="switchPanel('chats')">💬 Чаты</div>
                 <div class="nav-tab" onclick="switchPanel('groups')">👥 Группы</div>
-                <div class="nav-tab" onclick="switchPanel('games')">🎮 Игры</div>
+                <div class="nav-tab" onclick="switchPanel('game')">🎮 Игра</div>
             </div>
             
             <div id="chatsPanel" class="panel active">
@@ -177,14 +184,10 @@
                 </div>
             </div>
             
-            <div id="gamesPanel" class="panel">
-                <div style="text-align:center; padding:20px">
-                    <div style="background:#0f3460; border-radius:15px; padding:30px; cursor:pointer" onclick="playWithFriend()">
-                        <div style="font-size:48px; margin-bottom:10px">❌⭕</div>
-                        <div style="font-size:18px; font-weight:bold">Крестики-Нолики</div>
-                        <div style="font-size:12px; opacity:0.7; margin-top:5px">Играй с другом</div>
-                    </div>
-                </div>
+            <div id="gamePanel" class="panel">
+                <button id="findGameBtn" class="find-game-btn" onclick="findGame()">🎮 Найти игру</button>
+                <button id="cancelGameBtn" class="find-game-btn cancel-game-btn hidden" onclick="cancelFindGame()">❌ Отменить поиск</button>
+                <div id="gameQueueStatus" style="text-align:center; margin-top:15px; opacity:0.7"></div>
             </div>
         </div>
         
@@ -194,7 +197,6 @@
                 <div id="callBtns" style="display:none">
                     <button class="call-btn" onclick="startCall('audio')">🎤</button>
                     <button class="call-btn" onclick="startCall('video')">📹</button>
-                    <button class="call-btn game-btn" onclick="inviteToGame()">🎮</button>
                 </div>
             </div>
             <div id="messagesArea" class="messages"><div class="no-chat">👈 Нажмите на чат</div></div>
@@ -204,7 +206,7 @@
                     <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
                     <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
                     <button class="icon-btn" id="voiceRecordBtn" onclick="startVoiceRecording()">🎤</button>
-                    <input type="text" id="messageInput" placeholder="Сообщение..." disabled>
+                    <input type="text" id="messageInput" placeholder="Сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
                     <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
                 </div>
             </div>
@@ -213,6 +215,7 @@
 
     <div id="gameModal" class="game-modal">
         <div class="game-container">
+            <div id="gameCountdown" class="game-countdown"></div>
             <div id="gameBoard" class="game-board"></div>
             <div id="gameInfo" class="game-info"></div>
             <div class="game-controls">
@@ -264,6 +267,7 @@
         let gameMyTurn = false;
         let gameSymbol = 'X';
         let gameOver = false;
+        let isFindingGame = false;
         
         const config = {
             iceServers: [
@@ -309,7 +313,7 @@
                 loadGroups();
             } else {
                 document.querySelectorAll('.nav-tab')[2].classList.add('active');
-                document.getElementById('gamesPanel').classList.add('active');
+                document.getElementById('gamePanel').classList.add('active');
             }
         }
         
@@ -341,6 +345,7 @@
             else {
                 currentUser = data;
                 document.getElementById('myName').innerText = data.username;
+                document.getElementById('myWins').innerText = data.wins || 0;
                 if (data.avatar) document.getElementById('myAvatar').src = data.avatar + '?t=' + Date.now();
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
@@ -378,7 +383,7 @@
             } else {
                 container.innerHTML = data.users.map(u => `
                     <div class="user-item" onclick="selectUser('${u.id}', '${u.username}')">
-                        <div><span class="online-dot"></span>${u.username}</div>
+                        <div><span class="online-dot"></span>${u.username} ${u.wins ? `<span class="wins-badge">🏆${u.wins}</span>` : ''}</div>
                         <div>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button>
                             <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button>
@@ -543,7 +548,7 @@
             const data = await res.json();
             if (data.success && socket) {
                 if (currentFriend) {
-                    socket.emit('message', { to: currentFriend.id, file: data.url, text: null });
+                    socket.emit('message', { to: currentFriend.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
                     addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true);
                 } else if (currentGroup) {
                     socket.emit('group-message', { groupId: currentGroup.id, file: data.url, text: null, fromName: currentUser.username });
@@ -651,34 +656,55 @@
         function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
         function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
         
-        // ИГРА
-        function playWithFriend() {
-            if (!currentFriend) {
-                alert('Сначала выберите друга в чатах!');
-                return;
-            }
-            inviteToGame();
+        // ========== ИГРА ==========
+        function findGame() {
+            if (isFindingGame) return;
+            isFindingGame = true;
+            document.getElementById('findGameBtn').classList.add('hidden');
+            document.getElementById('cancelGameBtn').classList.remove('hidden');
+            document.getElementById('gameQueueStatus').innerHTML = '🔍 Поиск соперника...';
+            socket.emit('find-game');
         }
         
-        function inviteToGame() {
-            if (!currentFriend) {
-                alert('Выберите пользователя для игры');
-                return;
-            }
-            socket.emit('invite-game', { toUserId: currentFriend.id, fromName: currentUser.username });
-            alert(`Приглашение отправлено ${currentFriend.username}`);
+        function cancelFindGame() {
+            isFindingGame = false;
+            document.getElementById('findGameBtn').classList.remove('hidden');
+            document.getElementById('cancelGameBtn').classList.add('hidden');
+            document.getElementById('gameQueueStatus').innerHTML = '';
+            socket.emit('cancel-find-game');
         }
         
-        function startGame(roomId, opponent, firstTurn) {
+        function startGameCountdown(roomId, opponent, turn) {
+            gameRoomId = roomId;
+            let countdown = 5;
+            const countdownEl = document.getElementById('gameCountdown');
+            const boardEl = document.getElementById('gameBoard');
+            boardEl.innerHTML = '';
+            countdownEl.style.display = 'block';
+            countdownEl.innerHTML = countdown;
+            
+            const interval = setInterval(() => {
+                countdown--;
+                countdownEl.innerHTML = countdown;
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    countdownEl.style.display = 'none';
+                    startGame(roomId, opponent, turn);
+                }
+            }, 1000);
+            
+            document.getElementById('gameModal').classList.add('active');
+        }
+        
+        function startGame(roomId, opponent, turn) {
             gameRoomId = roomId;
             gameBoard = Array(9).fill(null);
-            gameMyTurn = (firstTurn === currentUser.userId);
+            gameMyTurn = (turn === currentUser.userId);
             gameSymbol = gameMyTurn ? 'X' : 'O';
             gameOver = false;
             
             renderGameBoard();
             document.getElementById('gameInfo').innerHTML = gameMyTurn ? 'Ваш ход (X)' : 'Ход соперника (O)';
-            document.getElementById('gameModal').classList.add('active');
         }
         
         function renderGameBoard() {
@@ -711,12 +737,12 @@
             gameMyTurn = false;
             document.getElementById('gameInfo').innerHTML = 'Ход соперника...';
             
-            // Проверка победы локально
             const winner = checkWinnerLocal(gameBoard);
             if (winner) {
                 gameOver = true;
                 if (winner === gameSymbol) {
                     document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                    document.getElementById('myWins').innerText = parseInt(document.getElementById('myWins').innerText) + 1;
                 } else if (winner === 'tie') {
                     document.getElementById('gameInfo').innerHTML = 'Ничья!';
                 } else {
@@ -749,6 +775,7 @@
                 gameOver = true;
                 if (winner === gameSymbol) {
                     document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                    document.getElementById('myWins').innerText = parseInt(document.getElementById('myWins').innerText) + 1;
                 } else if (winner === 'tie') {
                     document.getElementById('gameInfo').innerHTML = 'Ничья!';
                 } else {
@@ -761,6 +788,10 @@
         function closeGame() {
             if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
             gameRoomId = null;
+            isFindingGame = false;
+            document.getElementById('findGameBtn').classList.remove('hidden');
+            document.getElementById('cancelGameBtn').classList.add('hidden');
+            document.getElementById('gameQueueStatus').innerHTML = '';
             document.getElementById('gameModal').classList.remove('active');
         }
         
@@ -770,7 +801,7 @@
         
         function connectSocket() {
             socket = io();
-            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar });
+            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar, wins: currentUser.wins });
             
             socket.on('new-message', (data) => {
                 if (currentFriend && data.from === currentFriend.id) {
@@ -792,6 +823,7 @@
             
             socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
             socket.on('online-list', () => { loadUsers(); });
+            socket.on('spam-warning', (data) => { addSystemMessage(data.message); });
             
             socket.on('incoming-call', (data) => {
                 currentCall = { fromId: data.fromId, fromName: data.fromName, offer: data.offer, type: data.type };
@@ -808,31 +840,32 @@
             socket.on('call-ended', () => endCall());
             
             // Игра
-            socket.on('game-invite', (data) => {
-                if (confirm(`${data.fromName} приглашает вас сыграть в Крестики-Нолики! Принять?`)) {
-                    socket.emit('accept-game', { fromId: data.fromId, toId: currentUser.userId });
-                } else {
-                    socket.emit('game-decline', { toId: data.fromId });
-                }
+            socket.on('game-queue', (data) => {
+                document.getElementById('gameQueueStatus').innerHTML = data.message;
             });
+            
+            socket.on('game-countdown', (data) => {
+                startGameCountdown(data.roomId, data.opponent, data.turn);
+            });
+            
             socket.on('game-start', (data) => {
                 startGame(data.roomId, data.opponent, data.turn);
             });
-            socket.on('game-declined', () => {
-                alert('Собеседник отклонил приглашение');
-            });
+            
             socket.on('game-state', (data) => {
                 updateGameState(data.board, data.turn);
             });
+            
             socket.on('game-over', (data) => {
                 if (!gameOver) {
                     gameOver = true;
-                    if (data.winner === 'X') {
-                        document.getElementById('gameInfo').innerHTML = gameSymbol === 'X' ? '🎉 Вы победили! 🎉' : '😢 Вы проиграли';
-                    } else if (data.winner === 'O') {
-                        document.getElementById('gameInfo').innerHTML = gameSymbol === 'O' ? '🎉 Вы победили! 🎉' : '😢 Вы проиграли';
+                    if (data.winner === currentUser.userId) {
+                        document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                        document.getElementById('myWins').innerText = data.newWins;
                     } else if (data.winner === 'tie') {
                         document.getElementById('gameInfo').innerHTML = 'Ничья!';
+                    } else {
+                        document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
                     }
                     setTimeout(() => closeGame(), 2000);
                 }
@@ -847,13 +880,11 @@
         
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
         
-        // Переопределяем sendMessage для групп
-        const originalSendMessage = sendMessage;
         window.sendMessage = function() {
             if (currentGroup) {
                 sendGroupMessage();
             } else {
-                originalSendMessage();
+                sendMessage();
             }
         };
         
