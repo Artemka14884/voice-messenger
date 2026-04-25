@@ -9,7 +9,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
         
         .login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: linear-gradient(135deg,#667eea,#764ba2); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .login-box { background: white; padding: 40px; border-radius: 20px; width: 400px; text-align: center; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; width: 350px; text-align: center; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; }
         .login-box button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 10px; cursor: pointer; }
         .tab { display: inline-block; width: 50%; padding: 10px; cursor: pointer; }
@@ -23,12 +23,10 @@
         .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
         
         .app { display: flex; height: 100vh; }
-        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 45%; } }
+        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
         
-        .sidebar { width: 320px; background: #16213e; color: white; display: flex; flex-direction: column; overflow-y: auto; }
-        .user-header { padding: 15px; background: #0f3460; display: flex; align-items: center; gap: 10px; }
-        .user-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 2px solid #667eea; }
-        .user-info { flex: 1; }
+        .sidebar { width: 280px; background: #16213e; color: white; display: flex; flex-direction: column; }
+        .user-header { padding: 15px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
         .user-name { font-size: 16px; font-weight: bold; }
         .logout-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
@@ -38,18 +36,10 @@
         .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
         .panel.active { display: block; }
         
-        .user-item, .group-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .user-item:hover, .group-item:hover { background: #1a1a4e; }
+        .user-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:hover { background: #1a1a4e; }
         .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
-        .call-btn { padding: 5px 8px; background: #2196F3; border: none; border-radius: 15px; color: white; cursor: pointer; font-size: 11px; margin: 0 2px; }
         .wins-badge { background: gold; color: #333; border-radius: 20px; padding: 2px 6px; font-size: 10px; margin-left: 5px; }
-        
-        .invite-link { background: #0f3460; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; font-size: 12px; }
-        .invite-link button { background: #4CAF50; border: none; padding: 5px 10px; border-radius: 5px; color: white; cursor: pointer; margin-top: 5px; }
-        
-        .create-group { display: flex; gap: 8px; margin-top: 10px; }
-        .create-group input { flex: 1; padding: 8px; border-radius: 10px; border: none; }
-        .create-group button { background: #4CAF50; border: none; border-radius: 10px; padding: 8px 15px; color: white; cursor: pointer; }
         
         .find-game-btn { width: 100%; padding: 15px; background: #FF9800; border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
         .find-game-btn:hover { background: #F57C00; }
@@ -58,41 +48,17 @@
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
         .chat-header { background: white; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
         .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 18px; word-wrap: break-word; }
+        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; word-wrap: break-word; }
         .message.own { background: #667eea; color: white; align-self: flex-end; }
         .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .message-text { font-size: 14px; }
         .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
         .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; }
         
-        .file-attachment { display: flex; align-items: center; gap: 8px; padding: 5px; background: rgba(0,0,0,0.05); border-radius: 8px; cursor: pointer; }
-        .message-image { max-width: 200px; max-height: 200px; border-radius: 10px; cursor: pointer; }
-        .voice-message { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .voice-play { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
-        
         .typing { padding: 8px 15px; font-size: 12px; color: #666; font-style: italic; background: white; }
         .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; }
-        .input-main { display: flex; flex: 1; gap: 10px; align-items: center; }
         .input-area input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 25px; font-size: 14px; }
         .input-area button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
-        .icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px; border-radius: 50%; }
-        .recording { background: #f44336; color: white; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        
-        .call-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2000; }
-        .call-modal.active { display: flex; }
-        .call-card { background: #1a1a2e; border-radius: 40px; padding: 40px; width: 350px; text-align: center; color: white; }
-        .caller-name { font-size: 28px; margin-bottom: 10px; }
-        .call-status { font-size: 14px; margin-bottom: 30px; }
-        .call-actions { display: flex; justify-content: center; gap: 30px; }
-        .call-action { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; }
-        .accept { background: #4CAF50; color: white; }
-        .decline { background: #f44336; color: white; }
-        .minimize { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; border: none; color: white; font-size: 18px; cursor: pointer; }
-        
-        .video-container { display: flex; gap: 20px; margin-bottom: 20px; justify-content: center; }
-        .video-box { width: 45%; min-width: 200px; background: #000; border-radius: 10px; overflow: hidden; }
-        .video-box video { width: 100%; }
         
         .game-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2500; }
         .game-modal.active { display: flex; }
@@ -103,13 +69,6 @@
         .game-info { margin-top: 15px; color: white; font-size: 18px; }
         .game-controls { margin-top: 15px; }
         .game-btn-close { padding: 10px 20px; background: #4CAF50; border: none; border-radius: 10px; color: white; cursor: pointer; }
-        
-        .image-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .image-modal.active { display: flex; }
-        .image-modal img { max-width: 90%; max-height: 90%; border-radius: 10px; }
-        .close-image { position: absolute; top: 20px; right: 20px; background: white; width: 40px; height: 40px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; }
-        
-        .system-message { text-align: center; font-size: 11px; opacity: 0.6; padding: 5px; font-style: italic; }
         
         .hidden { display: none; }
         .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; text-align: center; padding: 20px; }
@@ -146,38 +105,21 @@
     <div id="app" class="app hidden">
         <div class="sidebar">
             <div class="user-header">
-                <img id="myAvatar" class="user-avatar" src="/avatars/default.png" onclick="document.getElementById('avatarInput').click()">
-                <div class="user-info">
-                    <div class="user-name" id="myName"></div>
-                    <div>🏆 Побед: <span id="myWins">0</span></div>
-                </div>
+                <div class="user-name" id="myName"></div>
+                <div>🏆 <span id="myWins">0</span></div>
                 <button class="logout-btn" onclick="logout()">🚪</button>
             </div>
-            <input type="file" id="avatarInput" style="display:none" accept="image/*" onchange="uploadAvatar(this)">
             
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="switchPanel('chats')">💬 Чаты</div>
-                <div class="nav-tab" onclick="switchPanel('groups')">👥 Группы</div>
                 <div class="nav-tab" onclick="switchPanel('game')">🎮 Игра</div>
             </div>
             
             <div id="chatsPanel" class="panel active">
-                <div class="invite-link">
-                    🔗 Код: <strong>FRIEND2024</strong><br>
-                    <button onclick="copyInvite()">📋 Копировать ссылку</button>
-                </div>
                 <div id="usersContainer"></div>
                 <div style="margin-top:10px; display:flex; gap:8px">
                     <input type="text" id="friendName" placeholder="Ник друга" style="flex:1; padding:8px; border-radius:10px; border:none">
                     <button onclick="addFriend()" style="background:#4CAF50; border:none; border-radius:10px; padding:8px 15px; color:white">➕</button>
-                </div>
-            </div>
-            
-            <div id="groupsPanel" class="panel">
-                <div id="groupsContainer"></div>
-                <div class="create-group">
-                    <input type="text" id="newGroupName" placeholder="Название группы">
-                    <button onclick="createGroup()">➕ Создать</button>
                 </div>
             </div>
             
@@ -191,21 +133,12 @@
         <div class="chat-area">
             <div class="chat-header">
                 <div id="chatWith">💬 Выберите чат</div>
-                <div id="callBtns" style="display:none">
-                    <button class="call-btn" onclick="startCall('audio')">🎤</button>
-                    <button class="call-btn" onclick="startCall('video')">📹</button>
-                </div>
             </div>
-            <div id="messagesArea" class="messages"><div class="no-chat">👈 Нажмите на чат</div></div>
+            <div id="messagesArea" class="messages"><div class="no-chat">👈 Нажмите на пользователя</div></div>
             <div id="typingIndicator" class="typing"></div>
             <div class="input-area">
-                <div class="input-main">
-                    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">📎</button>
-                    <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
-                    <button class="icon-btn" id="voiceRecordBtn" onclick="startVoiceRecording()">🎤</button>
-                    <input type="text" id="messageInput" placeholder="Сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
-                    <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
-                </div>
+                <input type="text" id="messageInput" placeholder="Сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
             </div>
         </div>
     </div>
@@ -220,41 +153,10 @@
         </div>
     </div>
 
-    <div id="callModal" class="call-modal">
-        <button class="minimize" onclick="minimizeCall()">🗕</button>
-        <div class="call-card">
-            <div class="caller-name" id="callerName"></div>
-            <div class="call-status" id="callStatus"></div>
-            <div id="videoContainer" class="video-container" style="display:none">
-                <div class="video-box"><video id="localVideo" autoplay muted playsinline></video><div class="video-label">Вы</div></div>
-                <div class="video-box"><video id="remoteVideo" autoplay playsinline></video><div class="video-label">Собеседник</div></div>
-            </div>
-            <div id="callActions" class="call-actions">
-                <button class="call-action accept" onclick="acceptCall()">✅</button>
-                <button class="call-action decline" onclick="declineCall()">❌</button>
-            </div>
-            <div id="callControls" class="call-actions" style="display:none">
-                <button class="call-action" onclick="toggleMic()">🎤</button>
-                <button class="call-action" onclick="toggleVideo()">📷</button>
-                <button class="call-action end" onclick="endCall()">📞</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="imageModal" class="image-modal">
-        <button class="close-image" onclick="closeImageViewer()">✖</button>
-        <img id="viewImage" src="">
-    </div>
-
-    <audio id="audioPlayer"></audio>
-    <audio id="ringtone" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" preload="auto"></audio>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        let socket, currentUser, currentFriend = null, currentGroup = null;
+        let socket, currentUser, currentFriend = null;
         let typingTimeout;
-        let peerConnection, localStream, currentCall = null;
-        let mediaRecorder, audioChunks = [], isRecording = false;
         let currentCaptcha = "";
         
         // Игра
@@ -264,15 +166,6 @@
         let gameSymbol = 'X';
         let gameOver = false;
         let isFindingGame = false;
-        
-        const config = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-            ]
-        };
         
         function generateCaptcha() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
@@ -303,12 +196,8 @@
                 document.querySelector('.nav-tab').classList.add('active');
                 document.getElementById('chatsPanel').classList.add('active');
                 loadUsers();
-            } else if (panel === 'groups') {
-                document.querySelectorAll('.nav-tab')[1].classList.add('active');
-                document.getElementById('groupsPanel').classList.add('active');
-                loadGroups();
             } else {
-                document.querySelectorAll('.nav-tab')[2].classList.add('active');
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
                 document.getElementById('gamePanel').classList.add('active');
             }
         }
@@ -342,26 +231,14 @@
                 currentUser = data;
                 document.getElementById('myName').innerText = data.username;
                 document.getElementById('myWins').innerText = data.wins || 0;
-                if (data.avatar) document.getElementById('myAvatar').src = data.avatar + '?t=' + Date.now();
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 connectSocket();
-                loadUsers(); loadGroups();
+                loadUsers();
             }
         }
         
         function logout() { location.reload(); }
-        function copyInvite() { navigator.clipboard.writeText(window.location.href); alert('Ссылка скопирована!'); }
-        
-        async function uploadAvatar(input) {
-            const file = input.files[0];
-            const formData = new FormData();
-            formData.append('avatar', file);
-            formData.append('userId', currentUser.userId);
-            const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.success) document.getElementById('myAvatar').src = data.avatar + '?t=' + Date.now();
-        }
         
         async function addFriend() {
             const username = document.getElementById('friendName').value.trim();
@@ -380,88 +257,14 @@
                 container.innerHTML = data.users.map(u => `
                     <div class="user-item" onclick="selectUser('${u.id}', '${u.username}')">
                         <div><span class="online-dot"></span>${u.username} ${u.wins ? `<span class="wins-badge">🏆${u.wins}</span>` : ''}</div>
-                        <div>
-                            <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'audio')">🎤</button>
-                            <button class="call-btn" onclick="event.stopPropagation();startCallTo('${u.id}', '${u.username}', 'video')">📹</button>
-                        </div>
                     </div>
                 `).join('');
             }
-        }
-        
-        async function loadGroups() {
-            const res = await fetch(`/api/groups/${currentUser.userId}`);
-            const data = await res.json();
-            const container = document.getElementById('groupsContainer');
-            if (!data.groups || data.groups.length === 0) {
-                container.innerHTML = '<div style="padding:20px;text-align:center;opacity:0.6">Нет групп</div>';
-            } else {
-                container.innerHTML = data.groups.map(g => `
-                    <div class="group-item" onclick="openGroup('${g.id}', '${g.name}')">
-                        <div>👥 ${g.name} (${g.members} уч.)</div>
-                        <button class="call-btn" onclick="event.stopPropagation();joinGroup('${g.id}')">➕ Вступить</button>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        async function createGroup() {
-            const name = document.getElementById('newGroupName').value.trim();
-            if (!name) return;
-            const res = await fetch('/api/create-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, userId: currentUser.userId }) });
-            const data = await res.json();
-            if (data.success) { alert('Группа создана'); document.getElementById('newGroupName').value = ''; loadGroups(); }
-        }
-        
-        async function joinGroup(groupId) {
-            await fetch('/api/join-group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ groupId, userId: currentUser.userId }) });
-            socket.emit('group-join-notify', { groupId, userName: currentUser.username });
-            openGroup(groupId, 'Группа');
-        }
-        
-        function openGroup(groupId, groupName) {
-            currentGroup = { id: groupId, name: groupName };
-            currentFriend = null;
-            document.getElementById('chatWith').innerHTML = `👥 ${groupName}`;
-            document.getElementById('callBtns').style.display = 'none';
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('messagesArea').innerHTML = '';
-            loadGroupMessages();
-        }
-        
-        async function loadGroupMessages() {
-            if (!currentGroup) return;
-            const res = await fetch(`/api/group-messages/${currentGroup.id}`);
-            const data = await res.json();
-            const container = document.getElementById('messagesArea');
-            container.innerHTML = '';
-            if (!data.messages || data.messages.length === 0) {
-                container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
-            } else {
-                data.messages.forEach(msg => {
-                    const isOwn = msg.from_id === currentUser.userId;
-                    addMessageToChat(msg.text, null, null, msg.time, isOwn, msg.username);
-                });
-            }
-            scrollToBottom();
-        }
-        
-        function sendGroupMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text || !currentGroup || !socket) return;
-            
-            socket.emit('group-message', { groupId: currentGroup.id, text, fromName: currentUser.username });
-            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true, currentUser.username);
-            input.value = '';
         }
         
         function selectUser(userId, username) {
             currentFriend = { id: userId, username };
-            currentGroup = null;
             document.getElementById('chatWith').innerHTML = `💬 Чат с ${username}`;
-            document.getElementById('callBtns').style.display = 'flex';
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('messagesArea').innerHTML = '';
@@ -479,7 +282,7 @@
             } else {
                 data.messages.forEach(msg => {
                     const isOwn = msg.from_id === currentUser.userId;
-                    addMessageToChat(msg.text, msg.file, msg.voice, msg.time, isOwn, msg.from_id === currentUser.userId ? null : currentFriend.username);
+                    addMessageToChat(msg.text, msg.time, isOwn, msg.from_id === currentUser.userId ? null : currentFriend.username);
                 });
             }
             scrollToBottom();
@@ -491,11 +294,11 @@
             if (!text || !currentFriend || !socket) return;
             
             socket.emit('message', { to: currentFriend.id, text });
-            addMessageToChat(text, null, null, new Date().toLocaleTimeString(), true);
+            addMessageToChat(text, new Date().toLocaleTimeString(), true);
             input.value = '';
         }
         
-        function addMessageToChat(text, fileUrl, voiceUrl, time, isOwn, senderName) {
+        function addMessageToChat(text, time, isOwn, senderName) {
             const container = document.getElementById('messagesArea');
             if (container.querySelector('.no-chat')) container.innerHTML = '';
             const div = document.createElement('div');
@@ -506,151 +309,12 @@
                 senderHtml = `<div class="message-sender">${escapeHtml(senderName)}</div>`;
             }
             
-            let content = '';
-            if (text) content = `<div class="message-text">${escapeHtml(text)}</div>`;
-            else if (voiceUrl) content = `<div class="voice-message" onclick="playVoice('${voiceUrl}')"><div class="voice-play">🔊</div><span>Голосовое</span></div>`;
-            else if (fileUrl) {
-                if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-                    content = `<img src="${fileUrl}" class="message-image" onclick="openImage('${fileUrl}')">`;
-                } else {
-                    content = `<div class="file-attachment" onclick="window.open('${fileUrl}')">📎 Файл</div>`;
-                }
-            }
-            
-            div.innerHTML = `${senderHtml}${content}<div class="message-time">${time}</div>`;
+            div.innerHTML = `${senderHtml}<div class="message-text">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
             container.appendChild(div);
             scrollToBottom();
         }
         
-        function addSystemMessage(text) {
-            const container = document.getElementById('messagesArea');
-            const div = document.createElement('div');
-            div.className = 'system-message';
-            div.innerHTML = `🔔 ${text}`;
-            container.appendChild(div);
-            scrollToBottom();
-        }
-        
-        async function uploadFile(input) {
-            const file = input.files[0];
-            if (!file || (!currentFriend && !currentGroup)) return;
-            
-            const btn = document.getElementById('fileBtn');
-            btn.innerHTML = '⏳';
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch('/api/upload-file', { method: 'POST', body: formData });
-            btn.innerHTML = '📎';
-            const data = await res.json();
-            if (data.success && socket) {
-                if (currentFriend) {
-                    socket.emit('message', { to: currentFriend.id, file: data.url, fileType: data.isImage ? 'image' : 'file', text: null });
-                    addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true);
-                } else if (currentGroup) {
-                    socket.emit('group-message', { groupId: currentGroup.id, file: data.url, text: null, fromName: currentUser.username });
-                    addMessageToChat(null, data.url, null, new Date().toLocaleTimeString(), true, currentUser.username);
-                }
-            }
-            input.value = '';
-        }
-        
-        async function startVoiceRecording() {
-            if (isRecording) { stopVoiceRecording(); return; }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-                mediaRecorder.onstop = async () => {
-                    isRecording = false;
-                    const btn = document.getElementById('voiceRecordBtn');
-                    if (btn) { btn.innerHTML = '🎤'; btn.classList.remove('recording'); }
-                    if (audioChunks.length === 0) return;
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const formData = new FormData();
-                    formData.append('voice', blob, 'voice.webm');
-                    if (btn) btn.innerHTML = '⏳';
-                    const res = await fetch('/api/voice', { method: 'POST', body: formData });
-                    if (btn) btn.innerHTML = '🎤';
-                    const data = await res.json();
-                    if (data.success && currentFriend && socket) {
-                        socket.emit('message', { to: currentFriend.id, voice: data.url, text: null });
-                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true);
-                    } else if (data.success && currentGroup && socket) {
-                        socket.emit('group-message', { groupId: currentGroup.id, voice: data.url, text: null, fromName: currentUser.username });
-                        addMessageToChat(null, null, data.url, new Date().toLocaleTimeString(), true, currentUser.username);
-                    }
-                    stream.getTracks().forEach(t => t.stop());
-                };
-                mediaRecorder.start(100);
-                isRecording = true;
-                const btn = document.getElementById('voiceRecordBtn');
-                if (btn) { btn.innerHTML = '🔴'; btn.classList.add('recording'); }
-                setTimeout(() => { if (isRecording) stopVoiceRecording(); }, 30000);
-            } catch(e) { alert('Нет микрофона'); }
-        }
-        
-        function stopVoiceRecording() { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }
-        function playVoice(url) { document.getElementById('audioPlayer').src = url; document.getElementById('audioPlayer').play(); }
-        
-        // Звонки
-        function startCallTo(userId, userName, type) {
-            currentFriend = { id: userId, username: userName };
-            startCall(type);
-        }
-        
-        async function startCall(type) {
-            if (!currentFriend) { alert('Выберите пользователя'); return; }
-            try {
-                if (type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                peerConnection = new RTCPeerConnection(config);
-                localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-                peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
-                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentFriend.id, candidate: e.candidate }); };
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('call-user', { toUserId: currentFriend.id, offer, type, fromName: currentUser.username });
-                currentCall = { type, toId: currentFriend.id };
-                document.getElementById('callerName').innerHTML = currentFriend.username;
-                document.getElementById('callStatus').innerHTML = 'Звоним...';
-                document.getElementById('callActions').style.display = 'flex';
-                document.getElementById('callControls').style.display = 'none';
-                document.getElementById('videoContainer').style.display = type === 'video' ? 'flex' : 'none';
-                if (type === 'video') document.getElementById('localVideo').srcObject = localStream;
-                document.getElementById('callModal').classList.add('active');
-            } catch(e) { alert('Нет доступа'); }
-        }
-        
-        async function acceptCall() {
-            if (!currentCall) return;
-            try {
-                if (currentCall.type === 'video') localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                else localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                peerConnection = new RTCPeerConnection(config);
-                localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-                peerConnection.ontrack = e => document.getElementById('remoteVideo').srcObject = e.streams[0];
-                peerConnection.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', { toUserId: currentCall.fromId, candidate: e.candidate }); };
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(currentCall.offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.emit('answer-call', { toUserId: currentCall.fromId, answer });
-                document.getElementById('callStatus').innerHTML = 'В разговоре...';
-                document.getElementById('callActions').style.display = 'none';
-                document.getElementById('callControls').style.display = 'flex';
-                if (currentCall.type === 'video') {
-                    document.getElementById('localVideo').srcObject = localStream;
-                    document.getElementById('videoContainer').style.display = 'flex';
-                }
-            } catch(e) { console.error(e); }
-        }
-        
-        function declineCall() { if (currentCall) { socket.emit('end-call', { toUserId: currentCall.fromId }); closeCallModal(); } }
-        function endCall() { if (localStream) localStream.getTracks().forEach(t => t.stop()); if (peerConnection) peerConnection.close(); if (currentCall) socket.emit('end-call', { toUserId: currentCall.fromId || currentCall.toId }); closeCallModal(); peerConnection = null; localStream = null; }
-        function minimizeCall() { document.getElementById('callModal').classList.remove('active'); }
-        function toggleMic() { if (localStream) { const t = localStream.getAudioTracks()[0]; if (t) t.enabled = !t.enabled; } }
-        function toggleVideo() { if (localStream) { const t = localStream.getVideoTracks()[0]; if (t) t.enabled = !t.enabled; } }
-        function closeCallModal() { document.getElementById('callModal').classList.remove('active'); document.getElementById('videoContainer').style.display = 'none'; if (document.getElementById('remoteVideo')) document.getElementById('remoteVideo').srcObject = null; }
+        function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
         
         // ========== ИГРА ==========
         function findGame() {
@@ -711,28 +375,60 @@
             socket.emit('game-move', { roomId: gameRoomId, index: index });
             gameMyTurn = false;
             document.getElementById('gameInfo').innerHTML = 'Ход соперника...';
-        }
-        
-        function updateGameState(board, turn) {
-            gameBoard = board;
-            gameMyTurn = (turn === currentUser.userId);
-            renderGameBoard();
-            if (!gameOver) {
-                document.getElementById('gameInfo').innerHTML = gameMyTurn ? 'Ваш ход (X)' : 'Ход соперника (O)';
+            
+            // Проверка победы
+            const winner = checkWinner();
+            if (winner) {
+                gameOver = true;
+                if (winner === gameSymbol) {
+                    document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                    const newWins = parseInt(document.getElementById('myWins').innerText) + 1;
+                    document.getElementById('myWins').innerText = newWins;
+                    fetch('/api/update-wins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.userId, wins: newWins }) });
+                } else if (winner === 'tie') {
+                    document.getElementById('gameInfo').innerHTML = 'Ничья!';
+                } else {
+                    document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
+                }
+                setTimeout(() => closeGame(), 2000);
             }
         }
         
-        function handleGameOver(winnerId) {
-            gameOver = true;
-            if (winnerId === currentUser.userId) {
-                document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
-                document.getElementById('myWins').innerText = parseInt(document.getElementById('myWins').innerText) + 1;
-            } else if (winnerId === 'tie') {
-                document.getElementById('gameInfo').innerHTML = 'Ничья!';
-            } else {
-                document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
+        function checkWinner() {
+            const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let line of lines) {
+                if (gameBoard[line[0]] && gameBoard[line[0]] === gameBoard[line[1]] && gameBoard[line[1]] === gameBoard[line[2]]) {
+                    return gameBoard[line[0]];
+                }
             }
-            setTimeout(() => closeGame(), 2000);
+            if (gameBoard.every(c => c !== null)) return 'tie';
+            return null;
+        }
+        
+        function updateGameMove(index, playerId) {
+            if (playerId !== currentUser.userId) {
+                const symbol = gameSymbol === 'X' ? 'O' : 'X';
+                gameBoard[index] = symbol;
+                renderGameBoard();
+                gameMyTurn = true;
+                document.getElementById('gameInfo').innerHTML = 'Ваш ход (X)';
+                
+                const winner = checkWinner();
+                if (winner) {
+                    gameOver = true;
+                    if (winner === gameSymbol) {
+                        document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
+                        const newWins = parseInt(document.getElementById('myWins').innerText) + 1;
+                        document.getElementById('myWins').innerText = newWins;
+                        fetch('/api/update-wins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.userId, wins: newWins }) });
+                    } else if (winner === 'tie') {
+                        document.getElementById('gameInfo').innerHTML = 'Ничья!';
+                    } else {
+                        document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
+                    }
+                    setTimeout(() => closeGame(), 2000);
+                }
+            }
         }
         
         function closeGame() {
@@ -745,48 +441,18 @@
             document.getElementById('gameModal').classList.remove('active');
         }
         
-        function openImage(url) { document.getElementById('viewImage').src = url; document.getElementById('imageModal').classList.add('active'); }
-        function closeImageViewer() { document.getElementById('imageModal').classList.remove('active'); }
-        function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
-        
         function connectSocket() {
             socket = io();
-            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar, wins: currentUser.wins });
+            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, wins: currentUser.wins });
             
             socket.on('new-message', (data) => {
                 if (currentFriend && data.from === currentFriend.id) {
-                    addMessageToChat(data.text, data.file, data.voice, data.time, false, data.fromName);
-                }
-            });
-            
-            socket.on('new-group-message', (data) => {
-                if (currentGroup && data.groupId === currentGroup.id) {
-                    addMessageToChat(data.text, null, null, data.time, false, data.fromName);
-                }
-            });
-            
-            socket.on('system-message', (data) => {
-                if (currentGroup && data.groupId === currentGroup.id) {
-                    addSystemMessage(data.text);
+                    addMessageToChat(data.text, data.time, false, data.fromName);
                 }
             });
             
             socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
             socket.on('online-list', () => { loadUsers(); });
-            
-            socket.on('incoming-call', (data) => {
-                currentCall = { fromId: data.fromId, fromName: data.fromName, offer: data.offer, type: data.type };
-                document.getElementById('callerName').innerHTML = data.fromName;
-                document.getElementById('callStatus').innerHTML = 'Входящий звонок...';
-                document.getElementById('callActions').style.display = 'flex';
-                document.getElementById('callControls').style.display = 'none';
-                document.getElementById('callModal').classList.add('active');
-                const ringtone = document.getElementById('ringtone');
-                if (ringtone) ringtone.play().catch(e => console.log);
-            });
-            socket.on('call-answered', async (data) => { if (peerConnection) { await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); document.getElementById('callStatus').innerHTML = 'В разговоре...'; document.getElementById('callActions').style.display = 'none'; document.getElementById('callControls').style.display = 'flex'; } });
-            socket.on('ice-candidate', async (data) => { if (peerConnection) { try { await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch(e) {} } });
-            socket.on('call-ended', () => endCall());
             
             // ИГРА
             socket.on('game-queue', (data) => {
@@ -801,15 +467,8 @@
                 document.getElementById('gameQueueStatus').innerHTML = '';
             });
             
-            socket.on('game-state', (data) => {
-                updateGameState(data.board, data.turn);
-            });
-            
-            socket.on('game-over', (data) => {
-                if (!gameOver) {
-                    handleGameOver(data.winner);
-                    if (data.newWins) document.getElementById('myWins').innerText = data.newWins;
-                }
+            socket.on('game-move-made', (data) => {
+                updateGameMove(data.index, data.playerId);
             });
         }
         
@@ -820,14 +479,6 @@
         });
         
         function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        
-        window.sendMessage = function() {
-            if (currentGroup) {
-                sendGroupMessage();
-            } else {
-                sendMessage();
-            }
-        };
         
         generateCaptcha();
     </script>
