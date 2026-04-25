@@ -14,7 +14,7 @@ const io = socketIo(server);
 app.use(express.static('public'));
 app.use(express.json({ limit: '50mb' }));
 
-// Создаём папки
+// Папки
 const folders = ['./public', './public/uploads', './public/avatars', './public/voice'];
 folders.forEach(f => { if (!fs.existsSync(f)) fs.mkdirSync(f, { recursive: true }); });
 
@@ -28,9 +28,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// База данных с проверкой на существование
 const db = new sqlite3.Database('messenger.db');
-db.run("PRAGMA journal_mode=WAL"); // Улучшает сохранность
 
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -81,14 +79,7 @@ db.serialize(() => {
         uses_left INTEGER DEFAULT 1
     )`);
     
-    db.run(`CREATE TABLE IF NOT EXISTS spam_log (
-        user_id TEXT PRIMARY KEY,
-        last_message INTEGER DEFAULT 0,
-        message_count INTEGER DEFAULT 0,
-        blocked_until INTEGER DEFAULT 0
-    )`);
-    
-    // Создаём владельца
+    // Владелец
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hash = await bcrypt.hash('admin123', 10);
@@ -97,7 +88,6 @@ db.serialize(() => {
         }
     });
     
-    // Демо группа
     db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
         if (!group) db.run("INSERT INTO groups (id, name) VALUES ('group1', 'Общий чат')");
     });
@@ -108,29 +98,6 @@ db.serialize(() => {
 });
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-
-// Антиспам проверка
-function checkSpam(userId, callback) {
-    const now = Date.now();
-    db.get("SELECT * FROM spam_log WHERE user_id = ?", [userId], (err, log) => {
-        if (log && log.blocked_until > now) {
-            callback(true, Math.ceil((log.blocked_until - now) / 1000));
-        } else if (log && now - log.last_message < 800) {
-            let count = (log.message_count || 1) + 1;
-            if (count >= 10) {
-                let blockedUntil = now + 60000;
-                db.run("UPDATE spam_log SET message_count = ?, last_message = ?, blocked_until = ? WHERE user_id = ?", [count, now, blockedUntil, userId]);
-                callback(true, 60);
-            } else {
-                db.run("UPDATE spam_log SET message_count = ?, last_message = ? WHERE user_id = ?", [count, now, userId]);
-                callback(false, 0);
-            }
-        } else {
-            db.run("INSERT OR REPLACE INTO spam_log (user_id, message_count, last_message, blocked_until) VALUES (?, 1, ?, 0)", [userId, now]);
-            callback(false, 0);
-        }
-    });
-}
 
 // API
 app.post('/api/register', async (req, res) => {
@@ -239,16 +206,16 @@ app.post('/api/update-wins', (req, res) => {
 
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
-let gameQueue = []; // Очередь поиска игры
+let gameQueue = [];
 let gameRooms = new Map();
 
 io.on('connection', (socket) => {
     let currentUserId = null;
-    let currentUser = null;
+    let currentUserName = null;
     
     socket.on('login', (data) => {
         currentUserId = data.userId;
-        currentUser = { id: data.userId, name: data.username, avatar: data.avatar, wins: data.wins || 0 };
+        currentUserName = data.username;
         onlineUsers.set(data.userId, { socketId: socket.id, name: data.username, avatar: data.avatar, wins: data.wins || 0 });
         
         const list = [];
@@ -258,36 +225,30 @@ io.on('connection', (socket) => {
         io.emit('online-list', list);
     });
     
-    // Личное сообщение с антиспамом
+    // ЛИЧНОЕ СООБЩЕНИЕ
     socket.on('message', (data) => {
-        checkSpam(currentUserId, (isBlocked, secondsLeft) => {
-            if (isBlocked) {
-                socket.emit('spam-warning', { message: `Вы заблокированы за спам на ${secondsLeft} сек` });
-                return;
-            }
-            
-            const messageId = generateId();
-            const time = new Date().toLocaleTimeString();
-            
-            db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, time]);
-            
-            const toUser = onlineUsers.get(data.to);
-            if (toUser) {
-                io.to(toUser.socketId).emit('new-message', {
-                    id: messageId,
-                    from: currentUserId,
-                    text: data.text,
-                    file: data.file,
-                    fileType: data.fileType,
-                    voice: data.voice,
-                    time: time
-                });
-            }
-        });
+        const messageId = generateId();
+        const time = new Date().toLocaleTimeString();
+        
+        db.run("INSERT INTO messages (id, from_id, to_id, text, file, file_type, voice, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+            [messageId, currentUserId, data.to, data.text || null, data.file || null, data.fileType || null, data.voice || null, time]);
+        
+        const toUser = onlineUsers.get(data.to);
+        if (toUser) {
+            io.to(toUser.socketId).emit('new-message', {
+                id: messageId,
+                from: currentUserId,
+                fromName: currentUserName,
+                text: data.text,
+                file: data.file,
+                fileType: data.fileType,
+                voice: data.voice,
+                time: time
+            });
+        }
     });
     
-    // Групповое сообщение
+    // ГРУППОВОЕ СООБЩЕНИЕ
     socket.on('group-message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
@@ -303,7 +264,7 @@ io.on('connection', (socket) => {
                         id: messageId,
                         groupId: data.groupId,
                         from: currentUserId,
-                        fromName: data.fromName,
+                        fromName: currentUserName,
                         text: data.text,
                         time: time
                     });
@@ -329,17 +290,17 @@ io.on('connection', (socket) => {
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
-            io.to(toUser.socketId).emit('typing', { from: data.name });
+            io.to(toUser.socketId).emit('typing', { from: currentUserName });
         }
     });
     
-    // Звонки
+    // ЗВОНКИ
     socket.on('call-user', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
             io.to(toUser.socketId).emit('incoming-call', {
                 fromId: currentUserId,
-                fromName: data.fromName,
+                fromName: currentUserName,
                 offer: data.offer,
                 type: data.type
             });
@@ -367,36 +328,24 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ========== ПОИСК ИГРЫ ==========
+    // ========== ИГРА ==========
     socket.on('find-game', () => {
-        // Проверяем, есть ли кто-то в очереди
         if (gameQueue.length > 0 && gameQueue[0] !== currentUserId) {
             const opponentId = gameQueue.shift();
             const opponent = onlineUsers.get(opponentId);
             const roomId = `game_${currentUserId}_${opponentId}`;
             
-            // Создаём игровую комнату
             gameRooms.set(roomId, {
                 players: [currentUserId, opponentId],
                 board: Array(9).fill(null),
                 turn: currentUserId,
-                scores: { [currentUserId]: 0, [opponentId]: 0 }
+                playerSymbols: { [currentUserId]: 'X', [opponentId]: 'O' }
             });
             
-            // Отправляем обоим игрокам обратный отсчёт
-            let countdown = 5;
-            const countdownInterval = setInterval(() => {
-                io.to(onlineUsers.get(currentUserId).socketId).emit('game-countdown', { countdown });
-                io.to(onlineUsers.get(opponentId).socketId).emit('game-countdown', { countdown });
-                countdown--;
-                if (countdown < 0) {
-                    clearInterval(countdownInterval);
-                    io.to(onlineUsers.get(currentUserId).socketId).emit('game-start', { roomId, opponent: opponentId, turn: currentUserId });
-                    io.to(onlineUsers.get(opponentId).socketId).emit('game-start', { roomId, opponent: currentUserId, turn: currentUserId });
-                }
-            }, 1000);
+            // Отправляем игрокам, что игра найдена
+            io.to(socket.id).emit('game-found', { roomId, opponent: opponentId, youStart: true });
+            io.to(opponent.socketId).emit('game-found', { roomId, opponent: currentUserId, youStart: false });
         } else {
-            // Добавляем в очередь
             if (!gameQueue.includes(currentUserId)) {
                 gameQueue.push(currentUserId);
                 socket.emit('game-queue', { message: 'Поиск соперника...' });
@@ -408,11 +357,10 @@ io.on('connection', (socket) => {
         gameQueue = gameQueue.filter(id => id !== currentUserId);
     });
     
-    // Ход в игре
     socket.on('game-move', (data) => {
         const room = gameRooms.get(data.roomId);
         if (room && room.turn === currentUserId && !room.board[data.index]) {
-            room.board[data.index] = data.symbol;
+            room.board[data.index] = room.playerSymbols[currentUserId];
             room.turn = room.players[0] === currentUserId ? room.players[1] : room.players[0];
             
             // Проверка победы
@@ -420,15 +368,13 @@ io.on('connection', (socket) => {
             if (winner) {
                 const winnerId = winner === 'X' ? room.players[0] : (winner === 'O' ? room.players[1] : null);
                 if (winnerId && winner !== 'tie') {
-                    room.scores[winnerId]++;
-                    // Обновляем победы в БД
                     db.get("SELECT wins FROM users WHERE id = ?", [winnerId], (err, user) => {
                         const newWins = (user.wins || 0) + 1;
                         db.run("UPDATE users SET wins = ? WHERE id = ?", [newWins, winnerId]);
-                        io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: winnerId, scores: room.scores, newWins });
+                        io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: winnerId, newWins });
                     });
                 } else if (winner === 'tie') {
-                    io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: 'tie', scores: room.scores });
+                    io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: 'tie' });
                 }
                 gameRooms.delete(data.roomId);
             } else {
