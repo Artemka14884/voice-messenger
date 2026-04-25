@@ -1,485 +1,800 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мессенджер</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Мессенджер — Полный функционал</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; }
-        
-        .login-screen { position: fixed; top:0; left:0; right:0; bottom:0; background: linear-gradient(135deg,#667eea,#764ba2); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .login-box { background: white; padding: 40px; border-radius: 20px; width: 350px; text-align: center; }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; }
-        .login-box button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 10px; cursor: pointer; }
-        .tab { display: inline-block; width: 50%; padding: 10px; cursor: pointer; }
-        .tab.active { border-bottom: 2px solid #667eea; color: #667eea; }
-        .form { display: none; }
-        .form.active { display: block; }
-        .error { color: red; margin-top: 10px; }
-        
-        .captcha-container { background: #f0f0f0; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center; }
-        .captcha-code { font-size: 28px; letter-spacing: 8px; background: #fff; padding: 10px; border-radius: 8px; font-family: monospace; }
-        .captcha-input { width: 100%; padding: 10px; margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; text-align: center; }
-        
-        .app { display: flex; height: 100vh; }
-        @media (max-width: 768px) { .app { flex-direction: column; } .sidebar { width: 100%; max-height: 40%; } }
-        
-        .sidebar { width: 280px; background: #16213e; color: white; display: flex; flex-direction: column; }
-        .user-header { padding: 15px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
-        .user-name { font-size: 16px; font-weight: bold; }
-        .logout-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        
-        .nav-tabs { display: flex; background: #0f3460; padding: 5px; gap: 5px; }
-        .nav-tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 10px; font-size: 14px; }
-        .nav-tab.active { background: #667eea; }
-        .panel { display: none; padding: 15px; flex: 1; overflow-y: auto; }
-        .panel.active { display: block; }
-        
-        .user-item { padding: 12px; margin: 5px 0; background: #0f3460; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .user-item:hover { background: #1a1a4e; }
-        .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #4CAF50; }
-        .wins-badge { background: gold; color: #333; border-radius: 20px; padding: 2px 6px; font-size: 10px; margin-left: 5px; }
-        
-        .find-game-btn { width: 100%; padding: 15px; background: #FF9800; border: none; border-radius: 10px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .find-game-btn:hover { background: #F57C00; }
-        .cancel-game-btn { background: #f44336; margin-top: 10px; }
-        
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; }
-        .chat-header { background: white; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 70%; padding: 10px 15px; border-radius: 15px; word-wrap: break-word; }
-        .message.own { background: #667eea; color: white; align-self: flex-end; }
-        .message.other { background: white; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .message-text { font-size: 14px; }
-        .message-time { font-size: 10px; margin-top: 5px; opacity: 0.7; }
-        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; }
-        
-        .typing { padding: 8px 15px; font-size: 12px; color: #666; font-style: italic; background: white; }
-        .input-area { display: flex; padding: 15px; background: white; gap: 10px; border-top: 1px solid #ddd; }
-        .input-area input { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 25px; font-size: 14px; }
-        .input-area button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
-        
-        .game-modal { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 2500; }
-        .game-modal.active { display: flex; }
-        .game-container { background: #1a1a2e; border-radius: 20px; padding: 20px; text-align: center; }
-        .game-board { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; background: #fff; padding: 10px; border-radius: 10px; margin: 0 auto; }
-        .game-cell { width: 100px; height: 100px; background: #2196F3; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; color: white; cursor: pointer; border-radius: 10px; }
-        .game-cell:hover { background: #1976D2; }
-        .game-info { margin-top: 15px; color: white; font-size: 18px; }
-        .game-controls { margin-top: 15px; }
-        .game-btn-close { padding: 10px 20px; background: #4CAF50; border: none; border-radius: 10px; color: white; cursor: pointer; }
-        
-        .hidden { display: none; }
-        .no-chat { display: flex; align-items: center; justify-content: center; height: 100%; color: #999; text-align: center; padding: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0e0e10;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Логин */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1f1c2c, #1a1a2e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .login-card {
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 32px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .login-card h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #a06eff, #5271ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            background: #1e1e24;
+            border: 1px solid #2c2c34;
+            border-radius: 16px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .login-card input:focus {
+            border-color: #6c5ce7;
+        }
+
+        .login-card button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6c5ce7, #a06eff);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2c2c34;
+            padding-bottom: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .tab.active {
+            color: #a06eff;
+            border-bottom: 2px solid #6c5ce7;
+        }
+
+        .form {
+            display: none;
+        }
+
+        .form.active {
+            display: block;
+        }
+
+        .captcha-block {
+            background: #1e1e24;
+            padding: 12px;
+            border-radius: 20px;
+            margin: 12px 0;
+            font-family: monospace;
+            font-size: 22px;
+            letter-spacing: 6px;
+            text-align: center;
+            user-select: none;
+        }
+
+        .error {
+            color: #ff5e5e;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        /* Основной интерфейс */
+        .app-layout {
+            display: flex;
+            height: 100vh;
+            background: #0e0e10;
+        }
+
+        /* Боковая панель */
+        .sidebar {
+            width: 320px;
+            background: #1a1a1f;
+            border-right: 1px solid #2a2a30;
+            display: flex;
+            flex-direction: column;
+            transition: 0.2s;
+        }
+
+        .user-preview {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #2a2a30;
+            background: #1e1e24;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #2c2c34;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name-side {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .user-status {
+            font-size: 12px;
+            color: #7a7a85;
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #44b77b;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        /* Навигация */
+        .nav-items {
+            padding: 12px 16px;
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #2a2a30;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 0;
+            font-size: 14px;
+        }
+
+        .nav-btn.active {
+            color: #a06eff;
+            border-bottom: 2px solid #6c5ce7;
+        }
+
+        .search-add {
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-add input {
+            flex: 1;
+            background: #121214;
+            border: none;
+            padding: 10px;
+            border-radius: 30px;
+            color: white;
+        }
+
+        .search-add button {
+            background: #2c2c34;
+            border: none;
+            width: 38px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .users-list, .groups-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.1s;
+            margin-bottom: 6px;
+        }
+
+        .user-card:hover {
+            background: #25252c;
+        }
+
+        .user-card-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mini-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #2c2c34;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            overflow: hidden;
+        }
+
+        .user-card-name {
+            font-weight: 500;
+        }
+
+        .online-status {
+            font-size: 10px;
+            color: #44b77b;
+        }
+
+        /* Чат */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-image: url('https://i.imgur.com/3j6Lr6U.jpg'); /* дефолт обои */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .chat-header {
+            background: rgba(30, 30, 40, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3a3a44;
+            z-index: 10;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .call-actions button {
+            background: #2c2c34;
+            border: none;
+            border-radius: 40px;
+            padding: 6px 12px;
+            color: white;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 8px 14px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.own {
+            background: #6c5ce7;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other {
+            background: #24242c;
+            color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-sender {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        .message-time {
+            font-size: 9px;
+            margin-top: 4px;
+            opacity: 0.5;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .pinned-messages {
+            background: #1f1f28;
+            padding: 10px 20px;
+            font-size: 12px;
+            border-bottom: 1px solid #3a3a44;
+            display: flex;
+            overflow-x: auto;
+            gap: 16px;
+            white-space: nowrap;
+            z-index: 9;
+        }
+
+        .pin-item {
+            background: #2c2c34;
+            padding: 4px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Ввод */
+        .input-wrapper {
+            background: #1e1e24;
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-top: 1px solid #2a2a30;
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            background: #121214;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 30px;
+            color: white;
+            outline: none;
+        }
+
+        .tool-btn {
+            background: #2c2c34;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Модалки */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .modal-card {
+            background: #1e1e24;
+            border-radius: 32px;
+            width: 320px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="loginScreen" class="login-screen">
-        <div class="login-box">
-            <h1>💬 Мессенджер</h1>
-            <div><div class="tab active" onclick="showTab('login')">Вход</div><div class="tab" onclick="showTab('register')">Регистрация</div></div>
-            
-            <div id="loginForm" class="form active">
-                <input type="text" id="loginUsername" placeholder="Никнейм">
-                <input type="password" id="loginPassword" placeholder="Пароль">
-                <button onclick="login()">Войти</button>
+        <div class="login-card">
+            <h1>Вход / Регистрация</h1>
+            <div class="tabs">
+                <button class="tab active" id="tabLoginBtn">Вход</button>
+                <button class="tab" id="tabRegBtn">Регистрация</button>
+            </div>
+            <div id="loginFormBlock" class="form active">
+                <input type="text" id="loginName" placeholder="Никнейм">
+                <input type="password" id="loginPass" placeholder="Пароль">
+                <button id="doLogin">Войти</button>
                 <div id="loginError" class="error"></div>
             </div>
-            
-            <div id="registerForm" class="form">
-                <input type="text" id="regUsername" placeholder="Никнейм (3+ символов)">
-                <input type="password" id="regPassword" placeholder="Пароль (4+ символов)">
-                <input type="text" id="inviteCode" placeholder="Код дружбы" value="FRIEND2024">
-                <div class="captcha-container">
-                    <div class="captcha-code" id="captchaCode"></div>
-                    <input type="text" id="captchaInput" class="captcha-input" placeholder="Введите код" maxlength="6">
-                    <button type="button" onclick="generateCaptcha()" style="background:none;border:none;cursor:pointer;margin-top:5px">🔄</button>
-                </div>
-                <button onclick="register()">Зарегистрироваться</button>
+            <div id="regFormBlock" class="form">
+                <input type="text" id="regName" placeholder="Никнейм">
+                <input type="password" id="regPass" placeholder="Пароль">
+                <input type="text" id="inviteCode" placeholder="Код приглашения" value="FRIEND2024">
+                <div class="captcha-block" id="captchaCode"></div>
+                <input type="text" id="captchaAnswer" placeholder="Код с картинки">
+                <button id="doReg">Зарегистрироваться</button>
                 <div id="regError" class="error"></div>
             </div>
         </div>
     </div>
 
-    <div id="app" class="app hidden">
+    <div id="mainApp" class="app-layout hidden">
+        <!-- левая панель -->
         <div class="sidebar">
-            <div class="user-header">
-                <div class="user-name" id="myName"></div>
-                <div>🏆 <span id="myWins">0</span></div>
-                <button class="logout-btn" onclick="logout()">🚪</button>
-            </div>
-            
-            <div class="nav-tabs">
-                <div class="nav-tab active" onclick="switchPanel('chats')">💬 Чаты</div>
-                <div class="nav-tab" onclick="switchPanel('game')">🎮 Игра</div>
-            </div>
-            
-            <div id="chatsPanel" class="panel active">
-                <div id="usersContainer"></div>
-                <div style="margin-top:10px; display:flex; gap:8px">
-                    <input type="text" id="friendName" placeholder="Ник друга" style="flex:1; padding:8px; border-radius:10px; border:none">
-                    <button onclick="addFriend()" style="background:#4CAF50; border:none; border-radius:10px; padding:8px 15px; color:white">➕</button>
+            <div class="user-preview">
+                <div class="avatar" id="avatarPreview" onclick="document.getElementById('avatarUpload').click()">
+                    <img id="avatarImg" src="/uploads/default.png">
+                </div>
+                <input type="file" id="avatarUpload" style="display:none" accept="image/*">
+                <div class="user-details">
+                    <div class="user-name-side" id="sideUsername"></div>
+                    <div class="user-status"><span class="online-dot"></span> В сети</div>
                 </div>
             </div>
-            
-            <div id="gamePanel" class="panel">
-                <button id="findGameBtn" class="find-game-btn" onclick="findGame()">🎮 Найти игру</button>
-                <button id="cancelGameBtn" class="find-game-btn cancel-game-btn hidden" onclick="cancelFindGame()">❌ Отменить</button>
-                <div id="gameQueueStatus" style="text-align:center; margin-top:15px; opacity:0.7"></div>
+            <div class="nav-items">
+                <button class="nav-btn active" data-panel="chats">💬 Чаты</button>
+                <button class="nav-btn" data-panel="notes">📝 Заметки</button>
+                <button class="nav-btn" data-panel="settings">⚙️ Настройки</button>
+            </div>
+            <div id="chatsPanel" class="panel" style="display: flex; flex-direction: column; flex:1;">
+                <div class="search-add">
+                    <input type="text" id="searchUser" placeholder="Никнейм...">
+                    <button id="addFriendBtn">➕</button>
+                </div>
+                <div id="usersListChat" class="users-list"></div>
+            </div>
+            <div id="notesPanel" class="panel hidden">
+                <div style="padding: 12px;">
+                    <input type="text" id="noteTitle" placeholder="Заголовок заметки" style="width:100%; margin-bottom:8px; background:#121214; border:none; padding:10px; border-radius:16px; color:white;">
+                    <textarea id="noteContent" rows="2" placeholder="Текст..." style="width:100%; background:#121214; border:none; padding:10px; border-radius:16px; color:white;"></textarea>
+                    <button id="createNoteBtn" style="width:100%; margin-top:8px; background:#6c5ce7; border:none; border-radius:30px; padding:8px;">➕ Добавить</button>
+                </div>
+                <div id="notesList" style="padding: 8px; overflow-y:auto;"></div>
+            </div>
+            <div id="settingsPanel" class="panel hidden">
+                <div style="padding: 16px;">
+                    <h4>Обои чата</h4>
+                    <input type="color" id="wallColor" value="#1a1a2e" style="width:100%; margin-bottom:16px;">
+                    <h4>Анонимный режим</h4>
+                    <label><input type="checkbox" id="anonymousMode"> Скрыть ник (#Anonim#)</label>
+                    <h4 style="margin-top:16px">Заблокированные</h4>
+                    <div id="blockedList"></div>
+                </div>
             </div>
         </div>
-        
-        <div class="chat-area">
-            <div class="chat-header">
-                <div id="chatWith">💬 Выберите чат</div>
-            </div>
-            <div id="messagesArea" class="messages"><div class="no-chat">👈 Нажмите на пользователя</div></div>
-            <div id="typingIndicator" class="typing"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Сообщение..." disabled onkeypress="if(event.key==='Enter') sendMessage()">
-                <button onclick="sendMessage()" id="sendBtn" disabled>📤</button>
-            </div>
-        </div>
-    </div>
 
-    <div id="gameModal" class="game-modal">
-        <div class="game-container">
-            <div id="gameBoard" class="game-board"></div>
-            <div id="gameInfo" class="game-info"></div>
-            <div class="game-controls">
-                <button class="game-btn-close" onclick="closeGame()">Закрыть</button>
+        <!-- Чат -->
+        <div class="chat-main" id="chatMain">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="mini-avatar" id="chatAvatar"></div>
+                    <div><strong id="chatUsername">Выберите диалог</strong><div id="chatStatusIndicator"></div></div>
+                </div>
+                <div class="call-actions">
+                    <button id="audioCallBtn">🎤</button>
+                    <button id="videoCallBtn">📹</button>
+                </div>
+            </div>
+            <div id="pinnedMessagesBar" class="pinned-messages"></div>
+            <div id="chatMessages" class="messages-area"></div>
+            <div class="input-wrapper">
+                <input type="text" id="msgInput" placeholder="Сообщение..." disabled>
+                <button id="sendMsgBtn" class="tool-btn" disabled>📤</button>
             </div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        let socket, currentUser, currentFriend = null;
-        let typingTimeout;
-        let currentCaptcha = "";
-        
-        // Игра
-        let gameRoomId = null;
-        let gameBoard = Array(9).fill(null);
-        let gameMyTurn = false;
-        let gameSymbol = 'X';
-        let gameOver = false;
-        let isFindingGame = false;
-        
+        // Основные переменные
+        let socket, currentUser = null, currentChatUser = null;
+        let messagesStore = {}; // { chatId: [] }
+        let pinnedStore = {}; // { chatId: [msgId] }
+        let blockedUsers = new Set();
+        let anonymousMode = false;
+
+        // DOM элементы
+        const loginScreen = document.getElementById('loginScreen');
+        const mainApp = document.getElementById('mainApp');
+
+        // --- Капча ---
+        let captchaText = '';
         function generateCaptcha() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-            let captcha = '';
-            for (let i = 0; i < 6; i++) captcha += chars[Math.floor(Math.random() * chars.length)];
-            currentCaptcha = captcha;
-            const el = document.getElementById('captchaCode');
-            if (el) el.innerHTML = captcha;
+            let res = '';
+            for(let i=0;i<6;i++) res += chars[Math.floor(Math.random() * chars.length)];
+            captchaText = res;
+            document.getElementById('captchaCode').innerText = res;
         }
-        
-        function showTab(tab) {
+
+        // --- Регистрация / Логин ---
+        document.getElementById('tabLoginBtn').onclick = () => {
+            document.getElementById('loginFormBlock').classList.add('active');
+            document.getElementById('regFormBlock').classList.remove('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
-            if (tab === 'login') {
-                document.querySelector('.tab').classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-                generateCaptcha();
-            }
-        }
-        
-        function switchPanel(panel) {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            if (panel === 'chats') {
-                document.querySelector('.nav-tab').classList.add('active');
-                document.getElementById('chatsPanel').classList.add('active');
-                loadUsers();
-            } else {
-                document.querySelectorAll('.nav-tab')[1].classList.add('active');
-                document.getElementById('gamePanel').classList.add('active');
-            }
-        }
-        
-        async function register() {
-            const username = document.getElementById('regUsername').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const inviteCode = document.getElementById('inviteCode').value.trim();
-            const captchaInput = document.getElementById('captchaInput').value.trim().toUpperCase();
-            
-            if (!captchaInput || captchaInput !== currentCaptcha) {
-                document.getElementById('regError').innerText = 'Неверный код!';
-                generateCaptcha();
-                document.getElementById('captchaInput').value = '';
-                return;
-            }
-            
-            const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, inviteCode }) });
+            document.getElementById('tabLoginBtn').classList.add('active');
+        };
+        document.getElementById('tabRegBtn').onclick = () => {
+            document.getElementById('loginFormBlock').classList.remove('active');
+            document.getElementById('regFormBlock').classList.add('active');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tabRegBtn').classList.add('active');
+            generateCaptcha();
+        };
+
+        document.getElementById('doLogin').onclick = async () => {
+            const username = document.getElementById('loginName').value.trim();
+            const password = document.getElementById('loginPass').value;
+            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
             const data = await res.json();
-            if (data.error) document.getElementById('regError').innerText = data.error;
-            else { alert('Регистрация успешна! Войдите.'); showTab('login'); }
-        }
-        
-        async function login() {
-            const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
-            const data = await res.json();
-            if (data.error) document.getElementById('loginError').innerText = data.error;
+            if(data.error) document.getElementById('loginError').innerText = data.error;
             else {
                 currentUser = data;
-                document.getElementById('myName').innerText = data.username;
-                document.getElementById('myWins').innerText = data.wins || 0;
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('sideUsername').innerText = currentUser.username;
+                document.getElementById('avatarImg').src = currentUser.avatar || '/uploads/default.png';
+                loginScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
                 connectSocket();
-                loadUsers();
+                loadUsersList();
+                loadNotes();
             }
-        }
-        
-        function logout() { location.reload(); }
-        
-        async function addFriend() {
-            const username = document.getElementById('friendName').value.trim();
-            if (!username) return;
-            alert(`Заявка отправлена ${username}`);
-            document.getElementById('friendName').value = '';
-        }
-        
-        async function loadUsers() {
-            const res = await fetch(`/api/users/${currentUser.userId}`);
+        };
+
+        document.getElementById('doReg').onclick = async () => {
+            const username = document.getElementById('regName').value.trim();
+            const password = document.getElementById('regPass').value;
+            const inviteCode = document.getElementById('inviteCode').value.trim();
+            const captchaAnswer = document.getElementById('captchaAnswer').value.trim();
+            if(captchaAnswer !== captchaText) { document.getElementById('regError').innerText = 'Неверная капча'; generateCaptcha(); return; }
+            const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ username, password, inviteCode }) });
             const data = await res.json();
-            const container = document.getElementById('usersContainer');
-            if (!data.users || data.users.length === 0) {
-                container.innerHTML = '<div style="padding:20px;text-align:center;opacity:0.6">Нет пользователей</div>';
-            } else {
-                container.innerHTML = data.users.map(u => `
-                    <div class="user-item" onclick="selectUser('${u.id}', '${u.username}')">
-                        <div><span class="online-dot"></span>${u.username} ${u.wins ? `<span class="wins-badge">🏆${u.wins}</span>` : ''}</div>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        function selectUser(userId, username) {
-            currentFriend = { id: userId, username };
-            document.getElementById('chatWith').innerHTML = `💬 Чат с ${username}`;
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('messagesArea').innerHTML = '';
-            loadMessages();
-        }
-        
-        async function loadMessages() {
-            if (!currentFriend) return;
-            const res = await fetch(`/api/messages/${currentUser.userId}/${currentFriend.id}`);
-            const data = await res.json();
-            const container = document.getElementById('messagesArea');
-            container.innerHTML = '';
-            if (!data.messages || data.messages.length === 0) {
-                container.innerHTML = '<div class="no-chat">💬 Напишите первое сообщение!</div>';
-            } else {
-                data.messages.forEach(msg => {
-                    const isOwn = msg.from_id === currentUser.userId;
-                    addMessageToChat(msg.text, msg.time, isOwn, msg.from_id === currentUser.userId ? null : currentFriend.username);
-                });
-            }
-            scrollToBottom();
-        }
-        
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (!text || !currentFriend || !socket) return;
-            
-            socket.emit('message', { to: currentFriend.id, text });
-            addMessageToChat(text, new Date().toLocaleTimeString(), true);
-            input.value = '';
-        }
-        
-        function addMessageToChat(text, time, isOwn, senderName) {
-            const container = document.getElementById('messagesArea');
-            if (container.querySelector('.no-chat')) container.innerHTML = '';
-            const div = document.createElement('div');
-            div.className = `message ${isOwn ? 'own' : 'other'}`;
-            
-            let senderHtml = '';
-            if (!isOwn && senderName) {
-                senderHtml = `<div class="message-sender">${escapeHtml(senderName)}</div>`;
-            }
-            
-            div.innerHTML = `${senderHtml}<div class="message-text">${escapeHtml(text)}</div><div class="message-time">${time}</div>`;
-            container.appendChild(div);
-            scrollToBottom();
-        }
-        
-        function scrollToBottom() { const c = document.getElementById('messagesArea'); c.scrollTop = c.scrollHeight; }
-        
-        // ========== ИГРА ==========
-        function findGame() {
-            if (isFindingGame) return;
-            isFindingGame = true;
-            document.getElementById('findGameBtn').classList.add('hidden');
-            document.getElementById('cancelGameBtn').classList.remove('hidden');
-            document.getElementById('gameQueueStatus').innerHTML = '🔍 Поиск соперника...';
-            socket.emit('find-game');
-        }
-        
-        function cancelFindGame() {
-            isFindingGame = false;
-            document.getElementById('findGameBtn').classList.remove('hidden');
-            document.getElementById('cancelGameBtn').classList.add('hidden');
-            document.getElementById('gameQueueStatus').innerHTML = '';
-            socket.emit('cancel-find-game');
-        }
-        
-        function startGame(roomId, opponent, youStart) {
-            gameRoomId = roomId;
-            gameBoard = Array(9).fill(null);
-            gameMyTurn = youStart;
-            gameSymbol = gameMyTurn ? 'X' : 'O';
-            gameOver = false;
-            
-            renderGameBoard();
-            document.getElementById('gameInfo').innerHTML = gameMyTurn ? 'Ваш ход (X)' : 'Ход соперника (O)';
-            document.getElementById('gameModal').classList.add('active');
-        }
-        
-        function renderGameBoard() {
-            const boardEl = document.getElementById('gameBoard');
-            boardEl.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'game-cell';
-                cell.textContent = gameBoard[i] || '';
-                cell.onclick = () => makeMove(i);
-                boardEl.appendChild(cell);
-            }
-        }
-        
-        function makeMove(index) {
-            if (gameOver) return;
-            if (!gameMyTurn) {
-                alert('Сейчас не ваш ход');
-                return;
-            }
-            if (gameBoard[index]) {
-                alert('Клетка занята');
-                return;
-            }
-            
-            gameBoard[index] = gameSymbol;
-            renderGameBoard();
-            
-            socket.emit('game-move', { roomId: gameRoomId, index: index });
-            gameMyTurn = false;
-            document.getElementById('gameInfo').innerHTML = 'Ход соперника...';
-            
-            // Проверка победы
-            const winner = checkWinner();
-            if (winner) {
-                gameOver = true;
-                if (winner === gameSymbol) {
-                    document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
-                    const newWins = parseInt(document.getElementById('myWins').innerText) + 1;
-                    document.getElementById('myWins').innerText = newWins;
-                    fetch('/api/update-wins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.userId, wins: newWins }) });
-                } else if (winner === 'tie') {
-                    document.getElementById('gameInfo').innerHTML = 'Ничья!';
-                } else {
-                    document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
-                }
-                setTimeout(() => closeGame(), 2000);
-            }
-        }
-        
-        function checkWinner() {
-            const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            for (let line of lines) {
-                if (gameBoard[line[0]] && gameBoard[line[0]] === gameBoard[line[1]] && gameBoard[line[1]] === gameBoard[line[2]]) {
-                    return gameBoard[line[0]];
-                }
-            }
-            if (gameBoard.every(c => c !== null)) return 'tie';
-            return null;
-        }
-        
-        function updateGameMove(index, playerId) {
-            if (playerId !== currentUser.userId) {
-                const symbol = gameSymbol === 'X' ? 'O' : 'X';
-                gameBoard[index] = symbol;
-                renderGameBoard();
-                gameMyTurn = true;
-                document.getElementById('gameInfo').innerHTML = 'Ваш ход (X)';
-                
-                const winner = checkWinner();
-                if (winner) {
-                    gameOver = true;
-                    if (winner === gameSymbol) {
-                        document.getElementById('gameInfo').innerHTML = '🎉 Вы победили! 🎉';
-                        const newWins = parseInt(document.getElementById('myWins').innerText) + 1;
-                        document.getElementById('myWins').innerText = newWins;
-                        fetch('/api/update-wins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.userId, wins: newWins }) });
-                    } else if (winner === 'tie') {
-                        document.getElementById('gameInfo').innerHTML = 'Ничья!';
-                    } else {
-                        document.getElementById('gameInfo').innerHTML = '😢 Вы проиграли';
-                    }
-                    setTimeout(() => closeGame(), 2000);
-                }
-            }
-        }
-        
-        function closeGame() {
-            if (gameRoomId && socket) socket.emit('game-end', { roomId: gameRoomId });
-            gameRoomId = null;
-            isFindingGame = false;
-            document.getElementById('findGameBtn').classList.remove('hidden');
-            document.getElementById('cancelGameBtn').classList.add('hidden');
-            document.getElementById('gameQueueStatus').innerHTML = '';
-            document.getElementById('gameModal').classList.remove('active');
-        }
-        
+            if(data.error) document.getElementById('regError').innerText = data.error;
+            else { alert('Регистрация успешна!'); document.getElementById('tabLoginBtn').click(); }
+        };
+
+        // --- Сокет ---
         function connectSocket() {
             socket = io();
-            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, wins: currentUser.wins });
-            
-            socket.on('new-message', (data) => {
-                if (currentFriend && data.from === currentFriend.id) {
-                    addMessageToChat(data.text, data.time, false, data.fromName);
+            socket.emit('login', { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar });
+            socket.on('users-list', (list) => { renderUsersList(list); });
+            socket.on('new-message', (msg) => {
+                if(currentChatUser && (msg.from === currentChatUser.id || msg.to === currentChatUser.id)) {
+                    addMessageToDom(msg, msg.from === currentUser.userId);
                 }
+                saveMessageLocally(msg);
             });
-            
-            socket.on('typing', (data) => { document.getElementById('typingIndicator').innerHTML = `${data.from} печатает...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => document.getElementById('typingIndicator').innerHTML = '', 2000); });
-            socket.on('online-list', () => { loadUsers(); });
-            
-            // ИГРА
-            socket.on('game-queue', (data) => {
-                document.getElementById('gameQueueStatus').innerHTML = data.message;
+            socket.on('typing', (data) => { if(currentChatUser && data.from === currentChatUser.id) showTyping(data.name); });
+        }
+
+        function showTyping(name) { document.getElementById('chatStatusIndicator').innerHTML = `<i>${name} печатает...</i>`; setTimeout(() => document.getElementById('chatStatusIndicator').innerHTML = '', 1500); }
+
+        function saveMessageLocally(msg) {
+            let room = [currentUser.userId, msg.from].sort().join('-');
+            if(!messagesStore[room]) messagesStore[room] = [];
+            messagesStore[room].push(msg);
+        }
+
+        function addMessageToDom(msg, isOwn) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `message ${isOwn ? 'own' : 'other'}`;
+            let showName = msg.fromName;
+            if(anonymousMode && !isOwn) showName = '#Anonim#';
+            div.innerHTML = `<div class="message-sender">${showName}</div><div>${escapeHtml(msg.text)}</div><div class="message-time">${msg.time}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- Загрузка списка пользователей ---
+        async function loadUsersList() {
+            const res = await fetch(`/api/users/${currentUser.userId}`);
+            const data = await res.json();
+            renderUsersList(data.users);
+        }
+
+        function renderUsersList(users) {
+            const container = document.getElementById('usersListChat');
+            container.innerHTML = users.map(u => `
+                <div class="user-card" data-id="${u.id}" data-name="${u.username}">
+                    <div class="user-card-left">
+                        <div class="mini-avatar"><img src="${u.avatar || '/uploads/default.png'}" style="width:100%"></div>
+                        <div><div class="user-card-name">${u.username}</div><div class="online-status">${u.online ? '🟢 онлайн' : '⚫ офлайн'}</div></div>
+                    </div>
+                    <div>
+                        <button class="call-btn" data-id="${u.id}" data-name="${u.username}" data-type="audio">🎤</button>
+                        <button class="call-btn" data-id="${u.id}" data-name="${u.username}" data-type="video">📹</button>
+                    </div>
+                </div>
+            `).join('');
+            // вешаем события
+            document.querySelectorAll('.user-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if(e.target.classList.contains('call-btn')) return;
+                    const id = card.dataset.id;
+                    const name = card.dataset.name;
+                    openChat(id, name);
+                });
             });
-            
-            socket.on('game-found', (data) => {
-                startGame(data.roomId, data.opponent, data.youStart);
-                isFindingGame = false;
-                document.getElementById('findGameBtn').classList.remove('hidden');
-                document.getElementById('cancelGameBtn').classList.add('hidden');
-                document.getElementById('gameQueueStatus').innerHTML = '';
-            });
-            
-            socket.on('game-move-made', (data) => {
-                updateGameMove(data.index, data.playerId);
+            document.querySelectorAll('.call-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const toId = btn.dataset.id;
+                    const toName = btn.dataset.name;
+                    const type = btn.dataset.type;
+                    startCall(toId, toName, type);
+                });
             });
         }
-        
-        document.getElementById('messageInput').addEventListener('input', () => {
-            if (socket && currentFriend) {
-                socket.emit('typing', { to: currentFriend.id, name: currentUser.username });
-            }
+
+        function openChat(userId, username) {
+            currentChatUser = { id: userId, name: username };
+            document.getElementById('chatUsername').innerText = username;
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendMsgBtn').disabled = false;
+            document.getElementById('chatMessages').innerHTML = '';
+            loadMessagesHistory(userId);
+            loadPinnedMessages(userId);
+        }
+
+        async function loadMessagesHistory(otherId) {
+            const res = await fetch(`/api/messages/${currentUser.userId}/${otherId}`);
+            const data = await res.json();
+            data.messages.forEach(msg => addMessageToDom(msg, msg.from_id === currentUser.userId));
+        }
+
+        function sendMessage() {
+            const text = document.getElementById('msgInput').value.trim();
+            if(!text || !currentChatUser) return;
+            socket.emit('message', { to: currentChatUser.id, text });
+            document.getElementById('msgInput').value = '';
+        }
+        document.getElementById('sendMsgBtn').onclick = sendMessage;
+        document.getElementById('msgInput').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+
+        // --- Закреп сообщений (без ограничений) ---
+        function pinMessage(msgId) {
+            if(!currentChatUser) return;
+            if(!pinnedStore[currentChatUser.id]) pinnedStore[currentChatUser.id] = [];
+            if(!pinnedStore[currentChatUser.id].includes(msgId)) pinnedStore[currentChatUser.id].push(msgId);
+            renderPinnedMessages(currentChatUser.id);
+        }
+
+        function renderPinnedMessages(chatId) {
+            const bar = document.getElementById('pinnedMessagesBar');
+            let pins = pinnedStore[chatId] || [];
+            bar.innerHTML = pins.map(pid => `<div class="pin-item" data-id="${pid}">📌 Закреплено <span style="font-size:10px">[x]</span></div>`).join('');
+        }
+
+        function loadPinnedMessages(chatId) { renderPinnedMessages(chatId); }
+
+        // --- Заметки (верхнее меню) ---
+        async function loadNotes() {
+            const res = await fetch(`/api/notes/${currentUser.userId}`);
+            const data = await res.json();
+            const container = document.getElementById('notesList');
+            container.innerHTML = data.notes.map(n => `<div style="background:#2c2c34; margin:6px 0; padding:8px; border-radius:14px;"><b>${escapeHtml(n.title)}</b><br>${escapeHtml(n.content)}</div>`).join('');
+        }
+        document.getElementById('createNoteBtn').onclick = async () => {
+            const title = document.getElementById('noteTitle').value;
+            const content = document.getElementById('noteContent').value;
+            if(!title.trim()) return;
+            await fetch('/api/create-note', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ userId: currentUser.userId, title, content }) });
+            document.getElementById('noteTitle').value = ''; document.getElementById('noteContent').value = '';
+            loadNotes();
+        };
+
+        // --- Настройки (аватарка, обои, анонимность)---
+        document.getElementById('avatarUpload').onchange = async (e) => {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('userId', currentUser.userId);
+            const res = await fetch('/api/upload-avatar', { method: 'POST', body: formData });
+            const data = await res.json();
+            if(data.success) document.getElementById('avatarImg').src = data.avatar;
+        };
+        document.getElementById('wallColor').oninput = (e) => {
+            document.getElementById('chatMain').style.background = e.target.value;
+        };
+        document.getElementById('anonymousMode').onchange = (e) => {
+            anonymousMode = e.target.checked;
+        };
+        // --- Блокировка через три точки (имитация) ---
+        window.blockUser = (userId) => {
+            if(confirm('Заблокировать пользователя?')) blockedUsers.add(userId);
+        };
+
+        // --- Навигация панелей ---
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+                document.getElementById(btn.dataset.panel + 'Panel').style.display = 'flex';
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if(btn.dataset.panel === 'notes') loadNotes();
+            };
         });
-        
-        function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        
+
+        // --- Фейковые звонки (заглушка работающая)---
+        window.startCall = (toId, toName, type) => { alert(`📞 ${type === 'audio' ? 'Аудиозвонок' : 'Видеозвонок'} для ${toName} (заглушка, full версия позже)`); };
+        function startCall(toId, toName, type) { alert(`📞 ${type} звонок для ${toName}`); }
+
+        function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){ if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; return m;}); }
         generateCaptcha();
     </script>
 </body>
