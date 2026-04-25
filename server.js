@@ -18,6 +18,7 @@ app.use(express.json({ limit: '50mb' }));
 const folders = ['./public', './public/uploads', './public/avatars', './public/voice'];
 folders.forEach(f => { if (!fs.existsSync(f)) fs.mkdirSync(f, { recursive: true }); });
 
+// Настройка multer для файлов и аватарок
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         if (file.fieldname === 'avatar') cb(null, './public/avatars');
@@ -28,7 +29,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// База данных
 const db = new sqlite3.Database('messenger.db');
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -74,12 +77,20 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     
+    db.run(`CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        title TEXT,
+        content TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    
     db.run(`CREATE TABLE IF NOT EXISTS invite_codes (
         code TEXT PRIMARY KEY,
         uses_left INTEGER DEFAULT 1
     )`);
     
-    // Владелец
+    // Создаём владельца
     db.get("SELECT * FROM users WHERE username = 'Artemka1488'", async (err, user) => {
         if (!user) {
             const hash = await bcrypt.hash('admin123', 10);
@@ -88,6 +99,7 @@ db.serialize(() => {
         }
     });
     
+    // Демо группа
     db.get("SELECT * FROM groups WHERE name = 'Общий чат'", (err, group) => {
         if (!group) db.run("INSERT INTO groups (id, name) VALUES ('group1', 'Общий чат')");
     });
@@ -97,9 +109,9 @@ db.serialize(() => {
     });
 });
 
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+// ========== API ==========
 
-// API
+// Регистрация
 app.post('/api/register', async (req, res) => {
     const { username, password, inviteCode } = req.body;
     if (!username || username.length < 3) return res.json({ error: 'Ник от 3 символов' });
@@ -121,6 +133,7 @@ app.post('/api/register', async (req, res) => {
     });
 });
 
+// Логин
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
@@ -132,6 +145,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+// Загрузка аватарки
 app.post('/api/upload-avatar', upload.single('avatar'), (req, res) => {
     const { userId } = req.body;
     const avatarUrl = '/avatars/' + req.file.filename;
@@ -139,23 +153,27 @@ app.post('/api/upload-avatar', upload.single('avatar'), (req, res) => {
     res.json({ success: true, avatar: avatarUrl });
 });
 
+// Загрузка файлов (фото, документы)
 app.post('/api/upload-file', upload.single('file'), (req, res) => {
     const fileUrl = '/uploads/' + req.file.filename;
     const isImage = req.file.mimetype.startsWith('image/');
     res.json({ success: true, url: fileUrl, name: req.file.originalname, isImage });
 });
 
+// Загрузка голосовых сообщений
 app.post('/api/voice', upload.single('voice'), (req, res) => {
     const voiceUrl = '/voice/' + req.file.filename;
     res.json({ success: true, url: voiceUrl });
 });
 
+// Получить список пользователей
 app.get('/api/users/:userId', (req, res) => {
     db.all("SELECT id, username, online, avatar, wins FROM users WHERE id != ?", [req.params.userId], (err, users) => {
         res.json({ users: users || [] });
     });
 });
 
+// Получить историю сообщений
 app.get('/api/messages/:userId/:friendId', (req, res) => {
     db.all(`SELECT * FROM messages 
             WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)
@@ -165,6 +183,7 @@ app.get('/api/messages/:userId/:friendId', (req, res) => {
     });
 });
 
+// === ГРУППЫ ===
 app.get('/api/groups/:userId', (req, res) => {
     db.all(`SELECT g.*, (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as members
             FROM groups g
@@ -198,6 +217,27 @@ app.get('/api/group-messages/:groupId', (req, res) => {
     });
 });
 
+// === ЗАМЕТКИ ===
+app.get('/api/notes/:userId', (req, res) => {
+    db.all("SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC", [req.params.userId], (err, notes) => {
+        res.json({ notes: notes || [] });
+    });
+});
+
+app.post('/api/create-note', (req, res) => {
+    const { userId, title, content } = req.body;
+    const noteId = generateId();
+    db.run("INSERT INTO notes (id, user_id, title, content) VALUES (?, ?, ?, ?)", [noteId, userId, title, content]);
+    res.json({ success: true });
+});
+
+app.post('/api/delete-note', (req, res) => {
+    const { noteId } = req.body;
+    db.run("DELETE FROM notes WHERE id = ?", [noteId]);
+    res.json({ success: true });
+});
+
+// === ОБНОВЛЕНИЕ ПОБЕД (опционально) ===
 app.post('/api/update-wins', (req, res) => {
     const { userId, wins } = req.body;
     db.run("UPDATE users SET wins = ? WHERE id = ?", [wins, userId]);
@@ -206,8 +246,6 @@ app.post('/api/update-wins', (req, res) => {
 
 // ========== WEBSOCKET ==========
 const onlineUsers = new Map();
-let gameQueue = [];
-let gameRooms = new Map();
 
 io.on('connection', (socket) => {
     let currentUserId = null;
@@ -220,12 +258,12 @@ io.on('connection', (socket) => {
         
         const list = [];
         for (let [id, user] of onlineUsers) {
-            list.push({ id, name: user.name, avatar: user.avatar, wins: user.wins });
+            list.push({ id, name: user.name, avatar: user.avatar, wins: user.wins, online: true });
         }
-        io.emit('online-list', list);
+        io.emit('users-list', list);
     });
     
-    // ЛИЧНОЕ СООБЩЕНИЕ
+    // ЛИЧНОЕ СООБЩЕНИЕ (текст, файл, голосовое)
     socket.on('message', (data) => {
         const messageId = generateId();
         const time = new Date().toLocaleTimeString();
@@ -246,6 +284,17 @@ io.on('connection', (socket) => {
                 time: time
             });
         }
+        // Отправляем обратно отправителю для отображения
+        socket.emit('new-message', {
+            id: messageId,
+            from: currentUserId,
+            fromName: currentUserName,
+            text: data.text,
+            file: data.file,
+            fileType: data.fileType,
+            voice: data.voice,
+            time: time
+        });
     });
     
     // ГРУППОВОЕ СООБЩЕНИЕ
@@ -259,7 +308,7 @@ io.on('connection', (socket) => {
         db.all("SELECT user_id FROM group_members WHERE group_id = ?", [data.groupId], (err, members) => {
             members.forEach(member => {
                 const memberSocket = onlineUsers.get(member.user_id);
-                if (memberSocket && member.user_id !== currentUserId) {
+                if (memberSocket) {
                     io.to(memberSocket.socketId).emit('new-group-message', {
                         id: messageId,
                         groupId: data.groupId,
@@ -287,6 +336,7 @@ io.on('connection', (socket) => {
         });
     });
     
+    // Печатает
     socket.on('typing', (data) => {
         const toUser = onlineUsers.get(data.to);
         if (toUser) {
@@ -294,7 +344,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ЗВОНКИ
+    // Звонки (заглушка, но сигналы проходят)
     socket.on('call-user', (data) => {
         const toUser = onlineUsers.get(data.toUserId);
         if (toUser) {
@@ -328,89 +378,15 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ========== ИГРА ==========
-    socket.on('find-game', () => {
-        if (gameQueue.length > 0 && gameQueue[0] !== currentUserId) {
-            const opponentId = gameQueue.shift();
-            const opponent = onlineUsers.get(opponentId);
-            const roomId = `game_${currentUserId}_${opponentId}`;
-            
-            gameRooms.set(roomId, {
-                players: [currentUserId, opponentId],
-                board: Array(9).fill(null),
-                turn: currentUserId,
-                playerSymbols: { [currentUserId]: 'X', [opponentId]: 'O' }
-            });
-            
-            // Отправляем игрокам, что игра найдена
-            io.to(socket.id).emit('game-found', { roomId, opponent: opponentId, youStart: true });
-            io.to(opponent.socketId).emit('game-found', { roomId, opponent: currentUserId, youStart: false });
-        } else {
-            if (!gameQueue.includes(currentUserId)) {
-                gameQueue.push(currentUserId);
-                socket.emit('game-queue', { message: 'Поиск соперника...' });
-            }
-        }
-    });
-    
-    socket.on('cancel-find-game', () => {
-        gameQueue = gameQueue.filter(id => id !== currentUserId);
-    });
-    
-    socket.on('game-move', (data) => {
-        const room = gameRooms.get(data.roomId);
-        if (room && room.turn === currentUserId && !room.board[data.index]) {
-            room.board[data.index] = room.playerSymbols[currentUserId];
-            room.turn = room.players[0] === currentUserId ? room.players[1] : room.players[0];
-            
-            // Проверка победы
-            const winner = checkWinner(room.board);
-            if (winner) {
-                const winnerId = winner === 'X' ? room.players[0] : (winner === 'O' ? room.players[1] : null);
-                if (winnerId && winner !== 'tie') {
-                    db.get("SELECT wins FROM users WHERE id = ?", [winnerId], (err, user) => {
-                        const newWins = (user.wins || 0) + 1;
-                        db.run("UPDATE users SET wins = ? WHERE id = ?", [newWins, winnerId]);
-                        io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: winnerId, newWins });
-                    });
-                } else if (winner === 'tie') {
-                    io.to(room.players[0]).to(room.players[1]).emit('game-over', { winner: 'tie' });
-                }
-                gameRooms.delete(data.roomId);
-            } else {
-                io.to(room.players[0]).to(room.players[1]).emit('game-state', {
-                    board: room.board,
-                    turn: room.turn
-                });
-            }
-        }
-    });
-    
-    function checkWinner(board) {
-        const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-        for (let line of lines) {
-            if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[1]] === board[line[2]]) {
-                return board[line[0]];
-            }
-        }
-        if (board.every(c => c !== null)) return 'tie';
-        return null;
-    }
-    
-    socket.on('game-end', (data) => {
-        gameRooms.delete(data.roomId);
-    });
-    
     socket.on('disconnect', () => {
         if (currentUserId) {
             onlineUsers.delete(currentUserId);
-            gameQueue = gameQueue.filter(id => id !== currentUserId);
             db.run("UPDATE users SET online = 0 WHERE id = ?", [currentUserId]);
             const list = [];
             for (let [id, user] of onlineUsers) {
-                list.push({ id, name: user.name, avatar: user.avatar, wins: user.wins });
+                list.push({ id, name: user.name, avatar: user.avatar, wins: user.wins, online: true });
             }
-            io.emit('online-list', list);
+            io.emit('users-list', list);
         }
     });
 });
